@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Profraesto</title>
+    <script>
+      // Pick light/dark theme from the device setting before the page paints.
+      document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    </script>
+    <style>
+      /* Profraesto — visual system. All application behavior lives in the script below. */
+      :root {
+        color-scheme: light;
+        --background: #f8f7f5;
+        --card: #ffffff;
+        --surface-secondary: #fcfaf8;
+        --surface-soft: #f8f0f0;
+        --text: #261c21;
+        --muted: #786e73;
+        --border: #eae4e4;
+        --border-strong: #dcd1d3;
+        --primary: #8c1832;
+        --primary-hover: #75102a;
+        --on-primary: #fff;
+        --header-background: #fff;
+        --accent: #bd3753;
+        --shadow: 0 2px 6px rgba(53, 31, 38, .025), 0 14px 35px rgba(53, 31, 38, .035);
+        --shadow-hover: 0 10px 32px rgba(82, 34, 46, .09);
+        --ring: rgba(140, 24, 50, .18);
+        --ok: #167d51;
+        --warn: #a8620f;
+        --gray: #77808d;
+        --unknown: #4567aa;
+        --dnd: #8452ba;
+        --danger: #c13b42;
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --background: #151217;
+        --card: #201b22;
+        --surface-secondary: #282129;
+        --surface-soft: #352128;
+        --text: #f7f1f3;
+        --muted: #b7abb2;
+        --border: #3b323a;
+        --border-strong: #51404a;
+        --primary: #c85873;
+        --primary-hover: #da6b85;
+        --on-primary: #1d1017;
+        --header-background: #201b22;
+        --accent: #ed8199;
+        --shadow: 0 8px 26px rgba(0,0,0,.14);
+        --shadow-hover: 0 16px 32px rgba(0,0,0,.23);
+        --ring: rgba(222, 115, 144, .22);
+        --ok: #61c899;
+        --warn: #e8ae59;
+        --gray: #a3a9b4;
+        --unknown: #97b6ee;
+        --dnd: #d2a4f7;
+        --danger: #f38a92;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { scroll-padding-top: 145px; }
+      body {
+        margin: 0;
+        min-width: 320px;
+        font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+        font-synthesis: none;
+        -webkit-font-smoothing: antialiased;
+        background: var(--background);
+        color: var(--text);
+      }
+      button, input, textarea, select { font: inherit; }
+      button, select { cursor: pointer; }
+      button, input, textarea, select { max-width: 100%; min-height: 43px; }
+      button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible,
+      .notification:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+      button:disabled { opacity: .48; cursor: not-allowed; }
+      h1, h2, h3, p { margin-top: 0; }
+      h1, h2, h3 { color: var(--text); letter-spacing: -.03em; }
+      h1 { font-size: clamp(26px, 3vw, 34px); font-weight: 760; line-height: 1.18; margin: 7px 0 9px; }
+      h2 { font-size: 17px; font-weight: 740; line-height: 1.3; margin: 0; }
+      h3 { font-size: 18px; line-height: 1.35; font-weight: 720; margin: 0; }
+      p { margin-bottom: 0; }
+      b, strong { font-weight: 700; }
+      .muted { color: var(--muted); }
+      .small { font-size: 12.5px; line-height: 1.55; }
+      .eyebrow { color: var(--primary); font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: .135em; }
+      .stack { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+      .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+      .row > input, .row > select { flex: 1 1 155px; min-width: 0; }
+      .fill { flex: 1 1 135px; min-width: 0; }
+
+      /* Header and primary navigation */
+      .app-header {
+        position: sticky; z-index: 30; top: 0;
+        padding: env(safe-area-inset-top, 0px) 24px 0;
+        background: var(--header-background);
+        border-bottom: 1px solid var(--border);
+      }
+      .header-inner {
+        max-width: 1160px; margin: 0 auto; min-height: 76px;
+        display: flex; gap: 15px; align-items: center;
+      }
+      .brand-mark {
+        width: 42px; height: 42px; border-radius: 12px; flex: 0 0 42px;
+        display: grid; place-items: center; background: #891830; color: #fff;
+        font-size: 22px; font-weight: 790; letter-spacing: -.055em;
+        box-shadow: 0 4px 12px rgba(137,24,48,.15);
+      }
+      .brand-copy { display: flex; flex: 1; flex-direction: column; gap: 0; min-width: 0; }
+      .app-title { color: var(--text); font-size: 19px; font-weight: 780; line-height: 1.25; letter-spacing: -.04em; }
+      .brand-subtitle { color: var(--muted); font-size: 11.5px; letter-spacing: .01em; }
+      .header-actions { display: flex; align-items: center; gap: 12px; }
+      .header-label { font-size: 10px; letter-spacing: .10em; font-weight: 800; color: var(--muted); text-transform: uppercase; }
+      .role-select { min-width: 126px; border-radius: 10px; font-weight: 660; background: var(--surface-secondary); }
+      .theme-toggle { width: 43px; padding: 0; flex: 0 0 43px; font-size: 20px; border-radius: 10px; line-height: 1; }
+      .tabs {
+        position: sticky; z-index: 29; top: calc(76px + env(safe-area-inset-top, 0px));
+        background: var(--header-background); border-bottom: 1px solid var(--border);
+      }
+      .tabs-inner { display: flex; max-width: 1160px; margin: auto; overflow-x: auto; scrollbar-width: none; gap: 24px; padding: 0 2px; }
+      .tabs-inner::-webkit-scrollbar { display: none; }
+      .tabs button {
+        min-height: 51px; flex: none; white-space: nowrap; border: 0; border-radius: 0;
+        border-bottom: 2px solid transparent; padding: 12px 2px 11px;
+        background: transparent; color: var(--muted); font-size: 13.5px; font-weight: 640;
+        transition: color .15s ease, border-color .15s ease;
+      }
+      .tabs button:hover { color: var(--text); }
+      .tabs button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 760; }
+
+      /* Page hierarchy, grid and surfaces */
+      main { max-width: 1208px; margin: 0 auto; padding: 35px 24px 64px; min-height: 65vh; }
+      .page-intro { display: flex; justify-content: space-between; align-items: flex-end; gap: 15px; margin-bottom: 28px; }
+      .page-intro p { max-width: 620px; font-size: 14px; color: var(--muted); }
+      .page-content { gap: 25px; }
+      .card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; }
+      .card {
+        display: flex; min-width: 0; flex-direction: column; gap: 14px;
+        padding: 22px; border: 1px solid var(--border); border-radius: 15px;
+        background: var(--card); box-shadow: var(--shadow);
+      }
+      .card > .row:last-child { margin-top: 3px; }
+      .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .section-heading h3 { font-size: 17px; }
+      .section-caption { font-size: 12px; color: var(--muted); font-weight: 570; }
+      .empty-state { padding: 35px 22px; border: 1px dashed var(--border-strong); text-align: center; border-radius: 14px; color: var(--muted); background: var(--card); }
+
+      /* Form controls */
+      input, select, textarea {
+        border: 1px solid var(--border-strong); border-radius: 10px;
+        background: var(--card); color: var(--text); padding: 10px 13px;
+        transition: border-color .15s, box-shadow .15s;
+      }
+      textarea { display: block; width: 100%; min-height: 100px; resize: vertical; }
+      input::placeholder, textarea::placeholder { color: var(--muted); opacity: .82; }
+      input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); outline: none; }
+      select { padding-right: 28px; }
+      button {
+        padding: 9px 16px; border: 1px solid var(--border-strong); border-radius: 10px;
+        background: var(--card); color: var(--text); font-size: 13px; font-weight: 680;
+        transition: background .16s, border-color .16s, box-shadow .16s, transform .16s;
+      }
+      button:not(:disabled):hover { border-color: var(--primary); background: var(--surface-soft); }
+      button:not(:disabled):active { transform: translateY(1px); }
+      button.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+      button.primary:not(:disabled):hover { background: var(--primary-hover); border-color: var(--primary-hover); color: var(--on-primary); box-shadow: 0 5px 13px var(--ring); }
+      label { color: var(--muted); font-weight: 620; font-size: 12px; }
+      label > input, label > select { margin-left: 5px; }
+      .form-label { display: block; font-size: 12px; font-weight: 690; color: var(--text); margin-bottom: 7px; }
+      .field-block { display: block; min-width: 0; }
+      .field-block > input, .field-block > select, .field-block > textarea { display: block; margin-left: 0; width: 100%; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+      .form-grid > * { min-width: 0; }
+      .name-fields { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 13px; }
+      .name-fields > * { min-width: 0; }
+      .timer-fields { display: grid; grid-template-columns: minmax(0,1fr) 100px minmax(0,1fr); align-items: end; gap: 10px; }
+      .timer-fields > * { min-width: 0; }
+      .form-actions { justify-content: flex-start; margin-top: 4px; }
+      .error-text { padding: 11px 13px; border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); color: var(--danger); border-radius: 9px; font-size: 12.5px; }
+      .hint-text { color: var(--muted); font-size: 12px; }
+
+      /* Faculty search and filters */
+      .directory-view { gap: 20px; }
+      .filter-panel { gap: 17px; }
+      .toolbar-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+      .toolbar-top h2 { margin: 0 0 3px; }
+      .toolbar-top p { font-size: 12.5px; color: var(--muted); }
+      .count-badge { display: inline-flex; align-items: center; white-space: nowrap; font-size: 11.5px; font-weight: 730; color: var(--primary); padding: 6px 11px; background: var(--surface-soft); border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--border)); border-radius: 100px; }
+      .filter-grid { display: grid; grid-template-columns: minmax(230px, 1.75fr) minmax(140px, 1fr) minmax(130px, .85fr) auto; align-items: stretch; gap: 11px; }
+      .filter-grid > * { min-width: 0; }
+      .filter-grid input, .filter-grid select, .filter-grid button { width: 100%; min-height: 44px; }
+      .search-wrap { position: relative; display: block; }
+      .search-wrap input { padding-left: 40px; }
+      .search-icon { position: absolute; pointer-events: none; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); }
+      .favorites-toggle { white-space: nowrap; }
+      .favorites-toggle.is-active { color: var(--on-primary); }
+      .results-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 1px 0; }
+      .results-heading h2 { font-size: 17px; }
+      .results-heading span { font-size: 12px; color: var(--muted); }
+
+      /* Faculty cards */
+      .faculty-card { gap: 15px; min-height: 321px; padding: 21px; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+      .faculty-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: var(--border-strong); }
+      .faculty-top { display: flex; align-items: flex-start; gap: 11px; }
+      .faculty-avatar { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 12px; background: var(--surface-soft); border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--border)); color: var(--primary); font-size: 13px; font-weight: 800; letter-spacing: .01em; }
+      .faculty-name { font-size: 15px; font-weight: 760; line-height: 1.42; letter-spacing: -.025em; display: block; overflow-wrap: anywhere; }
+      .faculty-department { margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
+      .icon-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--accent); font-size: 25px; line-height: 1; }
+      .icon-button:not(:disabled):hover { border-color: transparent; background: var(--surface-soft); }
+      .status-line { min-height: 26px; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+      .pill { display: inline-flex; align-items: center; gap: 3px; width: max-content; padding: 4px 10px; border: 1px solid color-mix(in srgb, var(--color) 22%, transparent); border-radius: 100px; background: color-mix(in srgb, var(--color) 10%, transparent); color: var(--color); font-size: 11.5px; font-weight: 750; line-height: 1.4; white-space: nowrap; }
+      .faculty-details { display: flex; flex-direction: column; gap: 11px; padding: 13px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 12.5px; }
+      .detail-row { display: flex; align-items: flex-start; gap: 9px; min-width: 0; line-height: 1.55; }
+      .detail-row > span:last-child { overflow-wrap: anywhere; }
+      .detail-icon { color: var(--muted); flex: 0 0 17px; text-align: center; font-size: 14px; }
+      .dnd-note { border-radius: 8px; padding: 9px 11px; background: var(--surface-secondary); border: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+      .faculty-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 11px; }
+      .faculty-updated { font-size: 11px; color: var(--muted); }
+      .faculty-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; }
+      .faculty-actions:has(> button:only-child) { grid-template-columns: 1fr; }
+      .faculty-actions button { min-height: 42px; white-space: nowrap; padding-left: 12px; padding-right: 12px; }
+
+      /* Appointments, notifications and panels */
+      .appointment-view { gap: 14px; }
+      .appointment-section { display: flex; flex-direction: column; gap: 12px; }
+      .appointment-card { gap: 12px; }
+      .appointment-title { font-size: 15px; font-weight: 760; letter-spacing: -.01em; }
+      .appointment-details { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+      .appointment-description { border-top: 1px solid var(--border); padding-top: 11px; font-size: 13.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .appointment-response { background: var(--surface-secondary); border: 1px solid var(--border); padding: 11px 13px; border-radius: 9px; font-size: 12.5px; }
+      .appointment-actions { margin-top: 4px; }
+      .appointment-actions input { flex: 1 1 180px; }
+      .status-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+      .status-panel > .card:first-child { grid-column: 1 / -1; }
+      .status-panel .card { gap: 17px; }
+      .status-buttons { gap: 9px; }
+      .status-buttons button { min-width: 105px; }
+      .status-live { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px; background: var(--surface-secondary); border: 1px solid var(--border); border-radius: 11px; }
+      .inline-time-label { display: inline-flex; align-items: center; gap: 7px; }
+      .inline-time-label input { margin-left: 0; }
+      .panel-actions { gap: 9px; }
+      .schedule-panel, .manage-panel { gap: 20px; }
+      .editor-card { gap: 17px; }
+      .schedule-entry, .faculty-manage-card { padding: 17px 20px; gap: 5px; }
+      .schedule-entry .row, .faculty-manage-card .row { gap: 12px; }
+      .schedule-entry .row > button, .faculty-manage-card .row > button { flex-shrink: 0; }
+      .schedule-entry b { font-size: 13.5px; }
+      .schedule-entry .small { margin-top: 4px; }
+      .notification { cursor: pointer; transition: background .15s, border-color .15s; }
+      .notification:hover { background: var(--surface-secondary); }
+      .notification.unread { border-left: 3px solid var(--primary); }
+      .notification b { font-size: 13.5px; line-height: 1.55; }
+      .notice-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+      .notice-top .small { max-width: 500px; }
+      .demo-footer { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 22px; font-size: 11.5px; text-align: center; color: var(--muted); }
+      .professor-picker { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; padding: 14px 17px; border-radius: 12px; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow); }
+      .professor-picker label { white-space: nowrap; color: var(--muted); }
+      .professor-picker select { margin-left: 0; min-width: 240px; flex: 0 1 300px; }
+
+      /* Modal layer */
+      .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(22, 13, 19, .60); backdrop-filter: blur(5px); }
+      .modal { display: flex; flex-direction: column; gap: 17px; width: 100%; max-width: 540px; max-height: min(90dvh, 850px); overflow: auto; overscroll-behavior: contain; padding: 26px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); box-shadow: 0 22px 80px rgba(0,0,0,.26); }
+      .modal h3 { font-size: 21px; }
+      .modal-subtitle { color: var(--muted); font-size: 12.5px; line-height: 1.55; margin-top: -10px; }
+      .modal .field-block { width: 100%; }
+      .slot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .slot-grid button { padding: 9px 7px; font-size: 12px; white-space: nowrap; }
+      .chip.selected { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+      .chip.selected:not(:disabled):hover { background: var(--primary-hover); color: var(--on-primary); }
+      .modal-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 9px; padding-top: 15px; border-top: 1px solid var(--border); margin-top: 2px; }
+      .toast { position: fixed; z-index: 90; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(90vw, 500px); padding: 12px 20px; border-radius: 11px; box-shadow: 0 10px 35px rgba(0,0,0,.19); background: var(--text); color: var(--card); font-size: 13px; font-weight: 650; text-align: center; }
+
+      .demo-warning { border: 1px solid color-mix(in srgb, var(--warn) 27%, var(--border)); background: color-mix(in srgb, var(--warn) 7%, var(--card)); border-radius: 12px; padding: 11px 16px; margin-bottom: 24px; font-size: 12px; color: var(--text); line-height: 1.6; }
+      .demo-warning b { color: var(--warn); }
+      .info-banner { padding: 11px 13px; border-radius: 10px; color: var(--text); background: color-mix(in srgb, var(--unknown) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--unknown) 22%, var(--border)); font-size: 12px; line-height: 1.55; }
+      .success-note { padding: 11px 13px; border-radius: 10px; background: color-mix(in srgb, var(--ok) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--ok) 24%, var(--border)); font-size: 12px; color: var(--ok); font-weight: 700; }
+      .exception-row { border-top: 1px solid var(--border); padding-top: 12px; }
+      @media (max-width: 990px) {
+        .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .filter-grid { grid-template-columns: minmax(230px, 1.5fr) minmax(140px, 1fr); }
+        .filter-grid .favorites-toggle { width: 100%; }
+        .tabs-inner { padding: 0 24px; }
+      }
+      @media (max-width: 650px) {
+        body { font-size: 14px; }
+        .app-header { padding: env(safe-area-inset-top, 0px) 16px 0; }
+        .header-inner { min-height: 66px; gap: 9px; }
+        .brand-mark { width: 37px; height: 37px; flex-basis: 37px; border-radius: 10px; font-size: 19px; }
+        .app-title { font-size: 17px; }
+        .brand-subtitle { font-size: 10px; }
+        .header-label { display: none; }
+        .header-actions { gap: 7px; }
+        .role-select { min-width: 100px; padding-left: 9px; padding-right: 18px; height: 39px; min-height: 39px; font-size: 12px; }
+        .theme-toggle { min-height: 39px; height: 39px; width: 39px; flex-basis: 39px; }
+        .tabs { top: calc(66px + env(safe-area-inset-top, 0px)); }
+        .tabs-inner { gap: 21px; padding: 0 17px; }
+        .tabs button { min-height: 47px; font-size: 12.5px; }
+        main { padding: 25px 16px 50px; }
+        .page-intro { margin-bottom: 22px; }
+        h1 { font-size: 26px; }
+        .page-intro p { font-size: 12.5px; }
+        .stack, .page-content { gap: 17px; }
+        .card-grid { grid-template-columns: minmax(0,1fr); gap: 12px; }
+        .card { padding: 19px; border-radius: 13px; }
+        .faculty-card { min-height: initial; gap: 13px; }
+        .faculty-details { gap: 9px; }
+        .filter-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 9px; }
+        .search-wrap { grid-column: 1 / -1; }
+        .filter-grid .favorites-toggle { grid-column: 1 / -1; }
+        .toolbar-top h2 { font-size: 16px; }
+        .form-grid { grid-template-columns: 1fr; }
+        .timer-fields { grid-template-columns: 1fr 1fr; }
+        .timer-fields > :first-child { grid-column: 1 / -1; }
+        .status-panel { grid-template-columns: minmax(0,1fr); gap: 13px; }
+        .status-panel > .card:first-child { grid-column: auto; }
+        .status-buttons button { flex: 1 1 110px; }
+        .professor-picker select { flex: 1 1 100%; min-width: 0; width: 100%; }
+        .modal { max-height: calc(100dvh - 30px - env(safe-area-inset-top, 0px)); padding: 21px; gap: 16px; }
+        .slot-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        .appointment-actions input { flex-basis: 100%; }
+        .schedule-entry .row > .fill, .faculty-manage-card .row > .fill { flex-basis: 100%; }
+        .notice-top { align-items: flex-start; flex-direction: column; }
+      }
+      @media (max-width: 375px) {
+        .brand-subtitle { display: none; }
+        .role-select { min-width: 90px; }
+        .filter-grid { grid-template-columns: 1fr; }
+        .name-fields { grid-template-columns: 88px minmax(0,1fr); }
+        .filter-grid .search-wrap, .filter-grid .favorites-toggle { grid-column: auto; }
+        .faculty-actions { grid-template-columns: minmax(0,1fr) auto; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+
+    <script>
+      /* =====================================================================
+         PROFRAESTO - faculty availability prototype (fictional demo data)
+         One file: React + htm. `html` is a template tag that works like JSX:
+             html`<div class="card">${name}</div>`
+         ===================================================================== */
+      const { useState, useEffect } = React;
+      const html = htm.bind(React.createElement);
+
+      /* =====================================================================
+         1. SETTINGS YOU CAN EDIT
+         ===================================================================== */
+
+      // Departments shown in the "Add a professor" dropdown. Add new ones here.
+      const DEPARTMENTS = ["CABM", "CAS", "CFLS", "CEA", "CHS", "CITHM-ICI", "JC"];
+
+      // Name prefixes shown in the "Add a professor" dropdown. Add new ones here.
+      const NAME_PREFIXES = ["Prof.", "Dr.", "Atty.", "Chef", "Engr.", "Ms.", "Mrs.", "Mr."];
+
+      // The student shown in the Student view (no login in this prototype).
+      const STUDENT_NAME = "Student 1 Demo";
+
+      const REQUEST_CATEGORIES = ["Academic Concern", "Grade Inquiry", "Thesis Advising", "Other"];
+
+      // Default consultation hours given to every newly added professor.
+      const DEFAULT_CONSULT_DAYS = [1, 2, 3, 4, 5]; // Monday to Friday
+      const DEFAULT_CONSULT_START = "13:00";
+      const DEFAULT_CONSULT_END = "15:00";
+
+      /* =====================================================================
+         2. CONSTANTS
+         ===================================================================== */
+      const MINUTE = 60 * 1000;
+      const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+      // Label, color and icon for each availability status.
+      const STATUS_INFO = {
+        available: { label: "Available", color: "var(--ok)", icon: "●" },
+        busy: { label: "Busy", color: "var(--warn)", icon: "●" },
+        unavailable: { label: "Unavailable", color: "var(--gray)", icon: "●" },
+        unknown: { label: "Unknown", color: "var(--unknown)", icon: "?" },
+        dnd: { label: "Do Not Disturb", color: "var(--dnd)", icon: "⛔" },
+      };
+
+      const APPOINTMENT_STATUS_COLORS = {
+        Pending: "var(--warn)",
+        Approved: "var(--ok)",
+        Rejected: "var(--danger)",
+        Cancelled: "var(--gray)",
+        Completed: "var(--unknown)",
+        Expired: "var(--gray)",
+        Proposed: "var(--unknown)",
+      };
+
+      // [tab id, tab label] for each role.
+      const TABS_BY_ROLE = {
+        student: [
+          ["directory", "Faculty"],
+          ["appointments", "My appointments"],
+          ["alerts", "Alerts"],
+        ],
+        professor: [
+          ["status", "Status"],
+          ["requests", "Requests"],
+          ["schedule", "Schedule"],
+          ["alerts", "Alerts"],
+        ],
+        admin: [["manage", "Manage faculty"]],
+      };
+
+      /* =====================================================================
+         3. DATE AND TIME HELPERS (everything uses Philippine Time, UTC+8)
+         ===================================================================== */
+      const philippineTimeFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+
+      // Returns today's date ("2026-10-13") and minutes since midnight, in Philippine Time.
+      function getPhilippineNow(timestamp = Date.now()) {
+        const parts = {};
+        philippineTimeFormatter.formatToParts(timestamp).forEach((part) => {
+          parts[part.type] = part.value;
+        });
+        return {
+          date: `${parts.year}-${parts.month}-${parts.day}`,
+          minutes: Number(parts.hour) * 60 + Number(parts.minute),
+        };
+      }
+
+      function getDayOfWeek(dateString) {
+        return new Date(dateString + "T00:00:00Z").getUTCDay(); // 0 = Sunday
+      }
+
+      function addDays(dateString, numberOfDays) {
+        const start = new Date(dateString + "T00:00:00Z").getTime();
+        return new Date(start + numberOfDays * 24 * 60 * MINUTE).toISOString().slice(0, 10);
+      }
+
+      function timeToMinutes(time) {
+        return Number(time.slice(0, 2)) * 60 + Number(time.slice(3)); // "13:30" -> 810
+      }
+
+      function minutesToTime(totalMinutes) {
+        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+        const minutes = String(totalMinutes % 60).padStart(2, "0");
+        return `${hours}:${minutes}`; // 810 -> "13:30"
+      }
+
+      function formatTime12h(time) {
+        const [hours, minutes] = time.split(":").map(Number);
+        const suffix = hours < 12 ? "AM" : "PM";
+        return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")} ${suffix}`; // "13:30" -> "1:30 PM"
+      }
+
+      function formatClock(timestamp) {
+        return new Date(timestamp).toLocaleTimeString("en-US", {
+          timeZone: "Asia/Manila",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+
+      function formatDate(dateString) {
+        return new Date(dateString + "T00:00:00Z").toLocaleDateString("en-US", {
+          timeZone: "UTC",
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      /* =====================================================================
+         4. PROFESSOR HELPERS
+         ===================================================================== */
+      // IDs survive reloads and never rely on a resettable counter.
+      function newId() {
+        return typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      }
+
+      const STORE_KEY = "profraesto-demo-v2";
+      const blankData = () => ({ professors: [], appointments: [], notifications: [], favoriteIds: [] });
+      function loadData() {
+        try {
+          const raw = localStorage.getItem(STORE_KEY);
+          if (!raw) return blankData();
+          const stored = JSON.parse(raw);
+          if (!stored || !["professors", "appointments", "notifications", "favoriteIds"].every(k => Array.isArray(stored[k]))) return blankData();
+          return stored;
+        } catch (e) { return blankData(); }
+      }
+      function blocksDate(professor, date) {
+        return (professor.exceptions || []).some(x => x.startDate <= date && date <= x.endDate);
+      }
+      function classOverlaps(professor, weekday, start, end) {
+        return (professor.schedule || []).some(x => x.type === "class" && x.day === weekday && timeToMinutes(x.start) < end && timeToMinutes(x.end) > start);
+      }
+      function appointmentConflicts(professor, appointment) {
+        if (!professor || professor.active === false) return "Faculty member is inactive";
+        if (blocksDate(professor, appointment.date)) return "Faculty is away on this date";
+        if (classOverlaps(professor, getDayOfWeek(appointment.date), timeToMinutes(appointment.time), timeToMinutes(appointment.time) + 30)) return "This appointment overlaps a class";
+        return "";
+      }
+      function slotStartsInPast(date, time, timestamp = Date.now()) {
+        const today = getPhilippineNow(timestamp);
+        return date < today.date || (date === today.date && timeToMinutes(time) <= today.minutes);
+      }
+      function availabilityFor(professor, now, appointments = []) {
+        if (!professor || professor.active === false) return { status: "unavailable", reason: "Faculty listing inactive" };
+        if (professor.dnd) return { status: "dnd", reason: "Do Not Disturb enabled" };
+        const today = getPhilippineNow(now);
+        const exception = (professor.exceptions || []).find(x => x.startDate <= today.date && today.date <= x.endDate);
+        if (exception) return { status: "unavailable", reason: "Away: " + exception.reason };
+        const day = getDayOfWeek(today.date);
+        if (classOverlaps(professor, day, today.minutes, today.minutes + 1)) return { status: "busy", reason: "Currently scheduled in class" };
+        if (appointments.some(a => a.professorId === professor.id && a.date === today.date && a.status === "Approved" && timeToMinutes(a.time) <= today.minutes && timeToMinutes(a.time) + 30 > today.minutes))
+          return { status: "busy", reason: "Currently in a booked consultation" };
+        if (professor.returnAt && professor.returnAt > now) return { status: professor.status, reason: "Temporary status set by faculty" };
+        // A manually reported 'Available' status becomes unverified after two hours.
+        if (professor.status === "available" && now - (professor.updatedAt || 0) > 120 * MINUTE)
+          return { status: "unknown", reason: "Availability not confirmed recently" };
+        return { status: professor.status, reason: "Self-reported by faculty; confirm before visiting" };
+      }
+
+
+      // "Dr." + "Maria Santos" -> "Dr. Maria Santos"
+      function displayName(professor) {
+        return `${professor.prefix} ${professor.name}`;
+      }
+
+      // Do Not Disturb overrides whatever status the professor picked.
+      function effectiveStatus(professor) {
+        return professor.dnd ? "dnd" : professor.status;
+      }
+
+      // "Back in 15 min (≈ 3:15 PM)" while a Back-at timer is running.
+      function returnText(professor, now) {
+        if (!professor.returnAt || professor.dnd) return "";
+        const minutesLeft = Math.max(1, Math.ceil((professor.returnAt - now) / MINUTE));
+        return `Back in ${minutesLeft} min (≈ ${formatClock(professor.returnAt)})`;
+      }
+
+      // [1,2,3,4,5] -> "Mon–Fri"; [2,4] -> "Tue, Thu"
+      function formatDayRange(days) {
+        const isConsecutive = days.length > 1 && days[days.length - 1] - days[0] === days.length - 1;
+        if (isConsecutive) return `${DAY_NAMES[days[0]]}–${DAY_NAMES[days[days.length - 1]]}`;
+        return days.map((day) => DAY_NAMES[day]).join(", ");
+      }
+
+      // "Mon–Fri, 1:00 PM–3:00 PM" (separate time windows are joined with ";")
+      function consultationHoursText(professor) {
+        const daysByTimeWindow = {};
+        professor.schedule
+          .filter((entry) => entry.type === "consult")
+          .sort((a, b) => a.day - b.day)
+          .forEach((entry) => {
+            const windowKey = entry.start + "-" + entry.end;
+            if (!daysByTimeWindow[windowKey]) daysByTimeWindow[windowKey] = [];
+            daysByTimeWindow[windowKey].push(entry.day);
+          });
+
+        const windows = Object.entries(daysByTimeWindow);
+        if (windows.length === 0) return "No consultation hours posted";
+
+        return windows
+          .map(([windowKey, days]) => {
+            const [start, end] = windowKey.split("-");
+            return `${formatDayRange(days)}, ${formatTime12h(start)}–${formatTime12h(end)}`;
+          })
+          .join("; ");
+      }
+
+      /* =====================================================================
+         5. SMALL SHARED UI PIECES
+         ===================================================================== */
+      function StatusPill({ status }) {
+        const { label, color, icon } = STATUS_INFO[status];
+        return html`<span class="pill" style=${{ "--color": color }}>${icon} ${label}</span>`;
+      }
+
+      function Modal({ onClose, children }) {
+        return html`
+          <div class="overlay" onClick=${onClose}>
+            <div class="modal" onClick=${(event) => event.stopPropagation()}>${children}</div>
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         6. STUDENT: faculty card
+         ===================================================================== */
+      function FacultyCard({ professor, app }) {
+        const availability = app.getAvailability(professor);
+        const status = availability.status;
+        const isFavorite = app.data.favoriteIds.includes(professor.id);
+        const canKnock = status === "available" || status === "unknown";
+
+        return html`
+          <article class="card faculty-card">
+            <div class="faculty-top">
+              <div class="faculty-avatar" aria-hidden="true">${professor.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</div>
+              <div class="fill">
+                <b class="faculty-name">${displayName(professor)}</b>
+                <div class="faculty-department">${professor.department} · ${professor.subjects.join(", ")}</div>
+              </div>
+              <button
+                class="icon-button"
+                title=${isFavorite ? "Remove from favorites" : "Add to favorites"}
+                aria-label=${isFavorite ? "Remove from favorites" : "Add to favorites"}
+                aria-pressed=${isFavorite}
+                onClick=${() => app.toggleFavorite(professor.id)}
+              >
+                ${isFavorite ? "★" : "☆"}
+              </button>
+            </div>
+            <div class="status-line">
+              <${StatusPill} status=${status} />
+              <span class="small muted">${returnText(professor, app.now)}</span>
+            </div>
+            <div class="small muted" aria-label="Availability explanation">${availability.reason}</div>
+            ${status === "dnd" && html`<div class="dnd-note">Do Not Disturb — Knock is off. You can still book a future slot.</div>`}
+            <div class="faculty-details">
+              <div class="detail-row"><span class="detail-icon" aria-hidden="true">⌖</span><span>${professor.office}</span></div>
+              <div class="detail-row"><span class="detail-icon" aria-hidden="true">◷</span><span>${consultationHoursText(professor)}</span></div>
+              <div class="detail-row"><span class="detail-icon" aria-hidden="true">▦</span><span>${app.nextSlotText(professor)}</span></div>
+            </div>
+            <div class="faculty-bottom">
+              <span class="faculty-updated">Last faculty update: ${new Date(professor.updatedAt).toLocaleString("en-US", { timeZone: "Asia/Manila", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} PHT</span>
+              <div class="faculty-actions">
+                <button class="primary" onClick=${() => app.openBooking(professor.id)}>Book consultation</button>
+                ${canKnock && html`<button onClick=${() => app.knock(professor)}>Knock</button>`}
+              </div>
+            </div>
+          </article>
+        `;
+      }
+
+      /* =====================================================================
+         7. STUDENT: faculty directory (search, filters, favorites)
+         ===================================================================== */
+      function Directory({ app }) {
+        const [searchText, setSearchText] = useState("");
+        const [departmentFilter, setDepartmentFilter] = useState("");
+        const [statusFilter, setStatusFilter] = useState("");
+        const [favoritesOnly, setFavoritesOnly] = useState(false);
+
+        const { favoriteIds } = app.data;
+        const professors = app.data.professors.filter(p => p.active !== false);
+        const departmentsInUse = DEPARTMENTS.filter((code) =>
+          professors.some((professor) => professor.department === code),
+        );
+
+        const visibleProfessors = professors
+          .filter((professor) => {
+            const searchable = (professor.name + " " + professor.subjects.join(" ") + " " + professor.department + " " + professor.office).toLowerCase();
+            return (
+              (!searchText || searchable.includes(searchText.toLowerCase())) &&
+              (!departmentFilter || professor.department === departmentFilter) &&
+              (!statusFilter || app.getAvailability(professor).status === statusFilter) &&
+              (!favoritesOnly || favoriteIds.includes(professor.id))
+            );
+          })
+          // favorites first, then alphabetical
+          .sort(
+            (a, b) =>
+              favoriteIds.includes(b.id) - favoriteIds.includes(a.id) ||
+              (app.getAvailability(a).status === "available" ? -1 : 0) - (app.getAvailability(b).status === "available" ? -1 : 0) ||
+              a.name.localeCompare(b.name),
+          );
+
+        let emptyMessage = "No faculty match your search.";
+        if (professors.length === 0) emptyMessage = "No professors yet. Switch to Admin to add some.";
+        else if (favoritesOnly && favoriteIds.length === 0)
+          emptyMessage = "No favorites yet — tap ☆ on a card.";
+
+        return html`
+          <div class="stack directory-view">
+            <section class="card filter-panel" aria-label="Faculty search and filters">
+              <div class="toolbar-top">
+                <div><h2>Find a professor</h2><p>Search by name or subject, or narrow down your results.</p></div>
+                <span class="count-badge">${visibleProfessors.length} found</span>
+              </div>
+              <div class="filter-grid">
+                <label class="search-wrap">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 5 5"></path></svg>
+                  <input aria-label="Search faculty by name, subject, department or office" placeholder="Search name, subject or room…" value=${searchText}
+                    onInput=${(event) => setSearchText(event.target.value)} />
+                </label>
+                <select aria-label="Filter by department" value=${departmentFilter} onChange=${(event) => setDepartmentFilter(event.target.value)}>
+                  <option value="">All departments</option>
+                  ${departmentsInUse.map((code) => html`<option key=${code}>${code}</option>`)}
+                </select>
+                <select aria-label="Filter by status" value=${statusFilter} onChange=${(event) => setStatusFilter(event.target.value)}>
+                  <option value="">Any status</option>
+                  ${Object.entries(STATUS_INFO).map(
+                    ([key, info]) => html`<option key=${key} value=${key}>${info.label}</option>`,
+                  )}
+                </select>
+                <button class=${"favorites-toggle" + (favoritesOnly ? " primary is-active" : "")}
+                  aria-pressed=${favoritesOnly} onClick=${() => setFavoritesOnly(!favoritesOnly)}>★ Favorites</button>
+              </div>
+            </section>
+            <div class="results-heading"><h2>Faculty members</h2><span>${visibleProfessors.length} result${visibleProfessors.length === 1 ? "" : "s"}</span></div>
+            ${visibleProfessors.length
+              ? html`<div class="card-grid">
+                  ${visibleProfessors.map(
+                    (professor) => html`<${FacultyCard} key=${professor.id} professor=${professor} app=${app} />`,
+                  )}
+                </div>`
+              : html`<div class="empty-state">${emptyMessage}</div>`}
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         8. STUDENT: booking dialog
+         ===================================================================== */
+      function BookingDialog({ professor, app, onClose, appointment = null }) {
+        const openSlots = app.getOpenSlots(professor);
+        const availableDates = [...new Set(openSlots.map((slot) => slot.date))];
+
+        const [selectedDate, setSelectedDate] = useState(availableDates[0] || "");
+        const [selectedTime, setSelectedTime] = useState("");
+        const [category, setCategory] = useState(appointment ? appointment.category : REQUEST_CATEGORIES[0]);
+        const [description, setDescription] = useState(appointment ? appointment.description : "");
+        const [errorMessage, setErrorMessage] = useState("");
+
+        function submit() {
+          const error = app.requestAppointment(
+            professor,
+            selectedDate,
+            selectedTime,
+            category,
+            description,
+            appointment && appointment.id,
+          );
+          if (error) setErrorMessage(error);
+          else onClose();
+        }
+
+        return html`
+          <${Modal} onClose=${onClose}>
+            <h3>${appointment ? "Request a different time" : "Book a consultation"}</h3>
+            <div class="info-banner">A request is <b>not confirmed</b> until the professor approves it. Pending slots are held to prevent duplicate requests.</div>
+            ${appointment && html`<p class="small muted">Your previous time remains reserved until this change is submitted. The revised request returns to Pending.</p>`}
+            <p class="modal-subtitle">With <b>${displayName(professor)}</b> · ${consultationHoursText(professor)} (Philippine Time)</p>
+
+            ${availableDates.length
+              ? html`
+                  <label class="field-block">
+                    <span class="form-label">Select a date</span>
+                    <select value=${selectedDate} onChange=${(event) => {
+                      setSelectedDate(event.target.value);
+                      setSelectedTime("");
+                    }}>
+                      ${availableDates.map(
+                        (date) => html`<option key=${date} value=${date}>${formatDate(date)}</option>`,
+                      )}
+                    </select>
+                  </label>
+                  <div class="field-block"><span class="form-label">Available time slots</span>
+                  <div class="slot-grid">
+                    ${openSlots
+                      .filter((slot) => slot.date === selectedDate)
+                      .map((slot) => {
+                        const isTaken = app.isSlotTaken(
+                          professor.id,
+                          slot.date,
+                          slot.time,
+                          slot.capacity,
+                          appointment && appointment.id,
+                        );
+                        return html`
+                          <button
+                            key=${slot.time}
+                            disabled=${isTaken}
+                            class=${"chip" + (selectedTime === slot.time ? " selected" : "")}
+                            onClick=${() => setSelectedTime(slot.time)}
+                          >
+                            ${formatTime12h(slot.time)}${isTaken ? " · Full" : ""}
+                          </button>
+                        `;
+                      })}
+                  </div></div>
+                `
+              : html`<div class="error-text">No upcoming consultation slots are published.</div>`}
+
+            <label class="field-block"><span class="form-label">Reason for consultation</span>
+              <select value=${category} onChange=${(event) => setCategory(event.target.value)}>
+                ${REQUEST_CATEGORIES.map((name) => html`<option key=${name}>${name}</option>`)}
+              </select>
+            </label>
+            <label class="field-block"><span class="form-label">Description</span>
+              <textarea rows="3" placeholder="Briefly describe your concern…" value=${description}
+                onInput=${(event) => setDescription(event.target.value)}></textarea>
+            </label>
+
+            ${errorMessage && html`<div class="error-text">${errorMessage}</div>`}
+
+            <div class="modal-actions">
+              <button onClick=${onClose}>Cancel</button>
+              <button class="primary" onClick=${submit}>${appointment ? "Request reschedule" : "Submit request"}</button>
+            </div>
+          <//>
+        `;
+      }
+
+      function ProposalDialog({ appointment, professor, app, onClose }) {
+        const slots = app.getOpenSlots(professor).filter(s => !app.isSlotTaken(professor.id, s.date, s.time, s.capacity, appointment.id));
+        const dates = [...new Set(slots.map(s => s.date))];
+        const [date, setDate] = useState(dates[0] || "");
+        const [time, setTime] = useState("");
+        const [error, setError] = useState("");
+        return html`<${Modal} onClose=${onClose}>
+          <h3>Suggest another consultation time</h3>
+          <p class="modal-subtitle">The student must accept before the appointment is confirmed.</p>
+          ${dates.length ? html`
+            <label class="field-block"><span class="form-label">Date</span><select value=${date} onChange=${e => { setDate(e.target.value); setTime(""); }}>
+              ${dates.map(d => html`<option key=${d} value=${d}>${formatDate(d)}</option>`)}
+            </select></label>
+            <div class="field-block"><span class="form-label">Time</span><div class="slot-grid">
+              ${slots.filter(s => s.date === date).map(s => html`<button key=${s.time} class=${"chip" + (s.time === time ? " selected" : "")} onClick=${() => setTime(s.time)}>${formatTime12h(s.time)}</button>`)}
+            </div></div>` : html`<div class="error-text">No alternative consultation slots are available.</div>`}
+          ${error && html`<div class="error-text">${error}</div>`}
+          <div class="modal-actions"><button onClick=${onClose}>Cancel</button>
+            <button class="primary" disabled=${!date || !time} onClick=${() => { const msg = app.proposeTime(appointment, date, time); if (msg) setError(msg); else onClose(); }}>Send proposal</button>
+          </div>
+        <//>`;
+      }
+
+      /* =====================================================================
+         9. BOTH ROLES: appointment list
+            professorView = true  -> shown to the professor (approve / reject)
+            professorView = false -> shown to the student (can cancel)
+         ===================================================================== */
+      function AppointmentRow({ appointment, app, professorView }) {
+        const professor = app.findProfessor(appointment.professorId);
+        const [responseText, setResponseText] = useState("");
+
+        const title = professorView ? appointment.student : displayName(professor);
+        const details = [
+          formatDate(appointment.date),
+          formatTime12h(appointment.time),
+          appointment.category,
+        ];
+        if (!professorView) details.push(professor.office);
+        if (appointment.status === "Proposed") details.unshift("Original request:");
+
+        return html`
+          <article class="card appointment-card">
+            <div class="row">
+              <b class="fill appointment-title">${title}</b>
+              <span class="pill" style=${{ "--color": APPOINTMENT_STATUS_COLORS[appointment.status] }}>
+                ${appointment.status}
+              </span>
+            </div>
+            <div class="muted small appointment-details">${details.join(" · ")}</div>
+            ${appointment.status === "Pending" && html`<div class="info-banner">Awaiting professor approval. Do not treat this as a confirmed consultation.</div>`}
+            ${appointment.status === "Approved" && html`<div class="success-note">Confirmed consultation · ${formatDate(appointment.date)} at ${formatTime12h(appointment.time)}</div>`}
+            ${["Pending", "Approved"].includes(appointment.status) && appointmentConflicts(professor, appointment) && html`<div class="error-text">Schedule conflict: ${appointmentConflicts(professor, appointment)}. Please contact the professor or reschedule.</div>`}
+            ${appointment.status === "Expired" && html`<div class="muted small">This request passed without a response. Please choose another time.</div>`}
+            ${appointment.status === "Proposed" && appointment.proposal && html`<div class="info-banner">Professor suggested <b>${formatDate(appointment.proposal.date)} at ${formatTime12h(appointment.proposal.time)}</b>. This time is not confirmed until you accept.</div>`}
+            <div class="appointment-description">${appointment.description}</div>
+            ${appointment.response && html`<div class="appointment-response"><b>Response:</b> ${appointment.response}</div>`}
+
+            ${professorView &&
+            appointment.status === "Pending" &&
+            html`
+              <div class="row appointment-actions">
+                <input
+                  aria-label="Optional response" placeholder="Optional response"
+                  value=${responseText}
+                  onInput=${(event) => setResponseText(event.target.value)}
+                />
+                <button class="primary" onClick=${() => app.decide(appointment, "Approved", responseText)}>
+                  Approve
+                </button>
+                <button onClick=${() => app.decide(appointment, "Rejected", responseText)}>Reject</button>
+                <button onClick=${() => app.openProposal(appointment)}>Suggest time</button>
+              </div>
+            `}
+            ${professorView &&
+            appointment.status === "Approved" &&
+            html`<div><button onClick=${() => app.complete(appointment)}>Mark completed</button></div>`}
+            ${!professorView && appointment.status === "Proposed" && html`<div class="row appointment-actions">
+              <button class="primary" onClick=${() => app.answerProposal(appointment, true)}>Accept proposed time</button>
+              <button onClick=${() => app.answerProposal(appointment, false)}>Decline</button>
+            </div>`}
+            ${!professorView &&
+            ["Pending", "Approved"].includes(appointment.status) && !slotStartsInPast(appointment.date, appointment.time, app.now) &&
+            html`<div class="row appointment-actions">
+              <button onClick=${() => app.openBooking(appointment.professorId, appointment.id)}>Reschedule</button>
+              <button onClick=${() => app.cancel(appointment)}>Cancel ${appointment.status === "Approved" ? "consultation" : "request"}</button>
+            </div>`}
+          </article>
+        `;
+      }
+
+      // Splits appointments into "Upcoming" (pending/approved) and "History" (everything else).
+      function AppointmentList({ app, appointments, professorView }) {
+        function renderSection(isUpcoming, soonestFirst, emptyMessage) {
+          const sectionAppointments = appointments
+            .filter((a) => (["Pending", "Approved"].includes(a.status) && !slotStartsInPast(a.date, a.time, app.now) || a.status === "Proposed" && a.proposal && !slotStartsInPast(a.proposal.date, a.proposal.time, app.now)) === isUpcoming)
+            .sort((a, b) => {
+              const order = (a.date + a.time).localeCompare(b.date + b.time);
+              return soonestFirst ? order : -order;
+            });
+
+          if (sectionAppointments.length === 0) return html`<div class="empty-state">${emptyMessage}</div>`;
+          return sectionAppointments.map(
+            (appointment) =>
+              html`<${AppointmentRow}
+                key=${appointment.id}
+                appointment=${appointment}
+                app=${app}
+                professorView=${professorView}
+              />`,
+          );
+        }
+
+        return html`
+          <div class="stack appointment-view">
+            <section class="appointment-section">
+              <div class="section-heading"><h3>Upcoming</h3><span class="section-caption">Pending, proposed & confirmed consultations</span></div>
+              ${renderSection(true, true, "Nothing upcoming.")}
+            </section>
+            <section class="appointment-section">
+              <div class="section-heading"><h3>History</h3><span class="section-caption">Previous requests and consultations</span></div>
+              ${renderSection(false, false, "No past consultations yet.")}
+            </section>
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         10. PROFESSOR: live status, Back-at timer, Do Not Disturb
+         ===================================================================== */
+      function StatusPanel({ app, professor }) {
+        const [timerMinutes, setTimerMinutes] = useState(15);
+        const [timerClockTime, setTimerClockTime] = useState("");
+        const [timerStatus, setTimerStatus] = useState("busy");
+        const [dndUntilTime, setDndUntilTime] = useState("");
+        const [errorMessage, setErrorMessage] = useState("");
+
+        // Turns a time like "15:30" (today, Philippine Time) into a timestamp, or null if already past.
+        function timeTodayToTimestamp(time) {
+          const minutesFromNow = timeToMinutes(time) - getPhilippineNow().minutes;
+          return minutesFromNow > 0 ? Date.now() + minutesFromNow * MINUTE : null;
+        }
+
+        function startTimer() {
+          let returnAt;
+          if (timerClockTime) {
+            returnAt = timeTodayToTimestamp(timerClockTime);
+            if (!returnAt) return setErrorMessage("Pick a time later than now (PHT).");
+          } else {
+            if (!(Number(timerMinutes) >= 1)) return setErrorMessage("Enter at least 1 minute.");
+            returnAt = Date.now() + Number(timerMinutes) * MINUTE;
+          }
+          setErrorMessage("");
+          app.setStatus(professor.id, timerStatus, returnAt);
+          app.showToast(
+            `Set to ${STATUS_INFO[timerStatus].label}. At ${formatClock(returnAt)} it becomes Available.`,
+          );
+        }
+
+        function toggleDoNotDisturb() {
+          if (professor.dnd) {
+            app.updateProfessor(professor.id, { dnd: null, updatedAt: Date.now() });
+            return app.showToast("Do Not Disturb off.");
+          }
+          let until = null;
+          if (dndUntilTime) {
+            until = timeTodayToTimestamp(dndUntilTime);
+            if (!until) return setErrorMessage("DND end time must be later than now.");
+          }
+          setErrorMessage("");
+          app.updateProfessor(professor.id, { dnd: { until }, updatedAt: Date.now() });
+          app.showToast("Do Not Disturb on — Knock is disabled.");
+        }
+
+        return html`
+          <div class="status-panel">
+            <div class="card">
+              <h3>Live status</h3>
+              <div class="status-live">
+                <${StatusPill} status=${app.getAvailability(professor).status} />
+                <span class="small muted">${app.getAvailability(professor).reason}</span>
+                <span class="small muted">${returnText(professor, app.now)}</span>
+              </div>
+              <div class="small muted">Faculty-reported status: ${STATUS_INFO[professor.status].label} · ${professor.office}. Class hours, confirmed consultations and absences override the displayed status.</div>
+              <div class="row status-buttons">
+                ${["available", "busy", "unavailable"].map(
+                  (status) => html`
+                    <button
+                      key=${status}
+                      class=${professor.status === status ? "primary" : ""}
+                      onClick=${() => {
+                        app.setStatus(professor.id, status);
+                        app.showToast("Manual status: " + STATUS_INFO[status].label);
+                      }}
+                    >
+                      ${STATUS_INFO[status].label}
+                    </button>
+                  `,
+                )}
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Back-at timer</h3>
+              <div class="timer-fields">
+                <label class="field-block"><span class="form-label">Set status to</span>
+                  <select value=${timerStatus} onChange=${(event) => setTimerStatus(event.target.value)}>
+                    <option value="busy">Busy</option>
+                    <option value="unavailable">Unavailable</option>
+                  </select>
+                </label>
+                <label class="field-block"><span class="form-label">In minutes</span>
+                  <input type="number" min="1" value=${timerMinutes} onInput=${(event) => {
+                    setTimerMinutes(event.target.value);
+                    setTimerClockTime("");
+                  }} />
+                </label>
+                <label class="field-block"><span class="form-label">Or at</span>
+                  <input type="time" value=${timerClockTime} onInput=${(event) => setTimerClockTime(event.target.value)} />
+                </label>
+              </div>
+              <div class="row panel-actions">
+                <button class="primary" onClick=${startTimer}>Start timer</button>
+                ${professor.returnAt &&
+                html`<button onClick=${() => app.updateProfessor(professor.id, { returnAt: null })}>
+                  Clear
+                </button>`}
+              </div>
+              <div class="small muted">When time runs out, the manual status becomes Available, subject to classes, bookings, and absences.</div>
+            </div>
+
+            <div class="card">
+              <h3>Do Not Disturb</h3>
+              <div class="row">
+                <label>
+                  until (optional)
+                  <input
+                    type="time"
+                    value=${dndUntilTime}
+                    disabled=${!!professor.dnd}
+                    onInput=${(event) => setDndUntilTime(event.target.value)}
+                  />
+                </label>
+                <button class=${professor.dnd ? "" : "primary"} onClick=${toggleDoNotDisturb}>
+                  ${professor.dnd ? "Turn off" : "Turn on"}
+                </button>
+              </div>
+              ${errorMessage && html`<div class="error-text">${errorMessage}</div>`}
+            </div>
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         11. PROFESSOR: schedule editor (class hours + consultation hours)
+         ===================================================================== */
+      function SchedulePanel({ app, professor }) {
+        const emptyForm = { type: "consult", day: 1, start: "09:00", end: "10:00", label: "", capacity: "" };
+        const [form, setForm] = useState(emptyForm);
+        const [editingEntryId, setEditingEntryId] = useState(null);
+        const [errorMessage, setErrorMessage] = useState("");
+        const [absence, setAbsence] = useState({ startDate: "", endDate: "", reason: "Leave" });
+        const [absenceError, setAbsenceError] = useState("");
+        const setField = (field, value) => setForm({ ...form, [field]: value });
+        function addAbsence() {
+          if (!absence.startDate || !absence.endDate || absence.endDate < absence.startDate) return setAbsenceError("Choose a valid start and end date.");
+          app.blockDates(professor, absence);
+          setAbsenceError("");
+          setAbsence({ startDate: "", endDate: "", reason: "Leave" });
+          app.showToast("Dates blocked from booking.");
+        }
+
+        function resetForm() {
+          setForm(emptyForm);
+          setEditingEntryId(null);
+          setErrorMessage("");
+        }
+
+        function saveEntry() {
+          if (!form.label.trim())
+            return setErrorMessage(
+              form.type === "class" ? "Enter a subject or class label." : "Enter an office location.",
+            );
+          if (timeToMinutes(form.end) <= timeToMinutes(form.start))
+            return setErrorMessage("End time must be after start time.");
+          if (form.capacity && Number(form.capacity) < 1)
+            return setErrorMessage("Capacity must be at least 1.");
+
+          const entry = {
+            id: editingEntryId || newId(),
+            type: form.type,
+            day: Number(form.day),
+            start: form.start,
+            end: form.end,
+            label: form.label.trim(),
+            capacity: form.type === "consult" && form.capacity ? Number(form.capacity) : null,
+          };
+          const newSchedule = editingEntryId
+            ? professor.schedule.map((existing) => (existing.id === editingEntryId ? entry : existing))
+            : [...professor.schedule, entry];
+
+          // Warn about overlapping entries rather than silently accepting conflicting hours.
+          if (newSchedule.some(x => x.id !== entry.id && x.day === entry.day && timeToMinutes(x.start) < timeToMinutes(entry.end) && timeToMinutes(x.end) > timeToMinutes(entry.start)))
+            return setErrorMessage("This time overlaps another schedule entry. Please adjust the hours.");
+          app.changeSchedule(professor, newSchedule);
+          app.showToast(editingEntryId ? "Entry updated." : "Entry added.");
+          resetForm();
+        }
+
+        function startEditing(entry) {
+          setForm({
+            type: entry.type,
+            day: entry.day,
+            start: entry.start,
+            end: entry.end,
+            label: entry.label,
+            capacity: entry.capacity || "",
+          });
+          setEditingEntryId(entry.id);
+          scrollTo(0, 0);
+        }
+
+        function askToDelete(entry) {
+          app.askToConfirm(
+            `Delete “${entry.label}” (${DAY_NAMES[entry.day]} ${formatTime12h(entry.start)})?`,
+            () => {
+              app.changeSchedule(professor, professor.schedule.filter(existing => existing.id !== entry.id));
+              app.showToast("Entry deleted.");
+            },
+          );
+        }
+
+        const sortedSchedule = [...professor.schedule].sort(
+          (a, b) => a.day - b.day || timeToMinutes(a.start) - timeToMinutes(b.start),
+        );
+
+        return html`
+          <div class="stack schedule-panel">
+            <div class="card editor-card">
+              <h3>${editingEntryId ? "Edit entry" : "Add entry"}</h3>
+              <div class="form-grid">
+                <label class="field-block"><span class="form-label">Entry type</span>
+                  <select value=${form.type} onChange=${(event) => setField("type", event.target.value)}>
+                    <option value="consult">Consultation hours</option>
+                    <option value="class">Class hours</option>
+                  </select>
+                </label>
+                <label class="field-block"><span class="form-label">Day of the week</span>
+                  <select value=${form.day} onChange=${(event) => setField("day", event.target.value)}>
+                    ${[1, 2, 3, 4, 5].map(
+                      (day) => html`<option key=${day} value=${day}>${DAY_NAMES[day]}</option>`,
+                    )}
+                  </select>
+                </label>
+                <label class="field-block"><span class="form-label">Start time</span>
+                  <input type="time" value=${form.start} onInput=${(event) => setField("start", event.target.value)} />
+                </label>
+                <label class="field-block"><span class="form-label">End time</span>
+                  <input type="time" value=${form.end} onInput=${(event) => setField("end", event.target.value)} />
+                </label>
+              </div>
+              <div class="form-grid">
+                <label class="field-block"><span class="form-label">${form.type === "class" ? "Subject or class label" : "Office location"}</span>
+                  <input placeholder=${form.type === "class" ? "Subject / class label" : "Office location"}
+                    value=${form.label} onInput=${(event) => setField("label", event.target.value)} />
+                </label>
+                ${form.type === "consult" && html`<label class="field-block"><span class="form-label">Max appointments (optional)</span>
+                  <input type="number" min="1" placeholder="Leave blank for default"
+                    value=${form.capacity} onInput=${(event) => setField("capacity", event.target.value)} />
+                </label>`}
+              </div>
+              ${errorMessage && html`<div class="error-text">${errorMessage}</div>`}
+              <div class="row">
+                <button class="primary" onClick=${saveEntry}>
+                  ${editingEntryId ? "Save changes" : "Add entry"}
+                </button>
+                ${editingEntryId && html`<button onClick=${resetForm}>Cancel</button>`}
+              </div>
+            </div>
+
+            <div class="card editor-card">
+              <h3>Block dates · leave, holidays, or meetings</h3>
+              <p class="hint-text">Students cannot request new consultations on blocked dates. Existing bookings remain visible and must be handled separately.</p>
+              <div class="form-grid">
+                <label class="field-block"><span class="form-label">From</span><input type="date" value=${absence.startDate} onInput=${e => setAbsence({ ...absence, startDate: e.target.value })} /></label>
+                <label class="field-block"><span class="form-label">Through</span><input type="date" min=${absence.startDate} value=${absence.endDate} onInput=${e => setAbsence({ ...absence, endDate: e.target.value })} /></label>
+                <label class="field-block"><span class="form-label">Reason</span><select value=${absence.reason} onChange=${e => setAbsence({ ...absence, reason: e.target.value })}>
+                  ${["Leave", "Holiday", "Meeting", "Off campus", "Unavailable"].map(x => html`<option key=${x}>${x}</option>`)}
+                </select></label>
+              </div>
+              ${absenceError && html`<div class="error-text">${absenceError}</div>`}
+              <div><button class="primary" onClick=${addAbsence}>Block dates</button></div>
+              ${(professor.exceptions || []).map(x => html`<div class="row exception-row" key=${x.id}>
+                <div class="fill"><b>${formatDate(x.startDate)} – ${formatDate(x.endDate)}</b><div class="small muted">${x.reason}</div></div>
+                <button onClick=${() => app.updateProfessor(professor.id, { exceptions: (professor.exceptions || []).filter(e => e.id !== x.id) })}>Remove block</button>
+              </div>`)}
+            </div>
+            <div class="section-heading"><h3>Weekly schedule</h3><span class="section-caption">Philippine Time (PHT)</span></div>
+            ${sortedSchedule.length
+              ? sortedSchedule.map(
+                  (entry) => html`
+                    <div class="card schedule-entry" key=${entry.id}>
+                      <div class="row">
+                        <div class="fill">
+                          <b>${DAY_NAMES[entry.day]} · ${formatTime12h(entry.start)}–${formatTime12h(entry.end)}</b>
+                          <div class="small muted">
+                            ${entry.type === "class" ? "Class" : "Consultation"} · ${entry.label}
+                            ${entry.capacity ? ` · max ${entry.capacity}` : ""}
+                          </div>
+                        </div>
+                        <button onClick=${() => startEditing(entry)}>Edit</button>
+                        <button onClick=${() => askToDelete(entry)}>Delete</button>
+                      </div>
+                    </div>
+                  `,
+                )
+              : html`<div class="card muted">No schedule entries yet.</div>`}
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         12. BOTH ROLES: in-app notifications (demo only, no real email)
+         ===================================================================== */
+      function Notifications({ app }) {
+        const [openNotificationId, setOpenNotificationId] = useState(null);
+
+        const myNotifications = app.data.notifications.filter((notification) =>
+          app.role === "student"
+            ? notification.to === "student"
+            : notification.to === "professor" && notification.professorId === app.currentProfessorId,
+        );
+
+        function markAsRead(ids) {
+          app.updateData("notifications", (list) =>
+            list.map((n) => (ids.includes(n.id) ? { ...n, read: true } : n)),
+          );
+        }
+
+        return html`
+          <div class="stack">
+            <div class="notice-top">
+              <span class="muted small fill">In-app demo alerts — no real emails are sent.</span>
+              <button
+                disabled=${!myNotifications.some((n) => !n.read)}
+                onClick=${() => markAsRead(myNotifications.map((n) => n.id))}
+              >
+                Mark all read
+              </button>
+            </div>
+
+            ${myNotifications.length
+              ? myNotifications.map(
+                  (notification) => html`
+                    <div
+                      key=${notification.id}
+                      class=${"card notification" + (notification.read ? "" : " unread")}
+                      onClick=${() => {
+                        setOpenNotificationId(openNotificationId === notification.id ? null : notification.id);
+                        markAsRead([notification.id]);
+                      }}
+                    >
+                      <b style=${{ fontWeight: notification.read ? 400 : 700 }}>${notification.text}</b>
+                      <span class="muted small">
+                        ${formatDate(getPhilippineNow(notification.createdAt).date)}
+                        ${formatClock(notification.createdAt)}
+                      </span>
+                      ${notification.kind === "knock" && !notification.response && app.role === "professor" && html`<div class="small muted">Open this alert to reply to the student.</div>`}
+                      ${openNotificationId === notification.id &&
+                      html`<div>
+                        <button
+                          onClick=${(event) => {
+                            event.stopPropagation();
+                            app.setTab(app.role === "student" ? "appointments" : "requests");
+                          }}
+                        >
+                          Open appointments
+                        </button>
+                        ${app.role === "professor" && notification.kind === "knock" && !notification.response && html`
+                          <div class="row" style=${{ marginTop: "10px" }}>
+                            ${["Come in", "Please wait", "Not available"].map(answer => html`<button key=${answer} onClick=${e => { e.stopPropagation(); app.respondToKnock(notification, answer); }}>${answer}</button>`)}
+                          </div>
+                        `}
+                        ${notification.response && html`<div class="small muted">Response: ${notification.response}</div>`}
+                      </div>`}
+                    </div>
+                  `,
+                )
+              : html`<div class="empty-state">You’re all caught up.</div>`}
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         13. ADMIN: add / remove professors
+         ===================================================================== */
+      function ManageFaculty({ app }) {
+        const emptyForm = { prefix: NAME_PREFIXES[0], name: "", department: "", subjects: "", office: "" };
+        const [form, setForm] = useState(emptyForm);
+        const [editingId, setEditingId] = useState(null);
+        const [errorMessage, setErrorMessage] = useState("");
+
+        const setField = (field, value) => setForm({ ...form, [field]: value });
+
+        // If someone types "Dr. Maria Santos" in the name box, drop the typed prefix.
+        const typedPrefixPattern = new RegExp(
+          "^(" + NAME_PREFIXES.map((prefix) => prefix.replace(".", "\\.")).join("|") + ")\\s+",
+          "i",
+        );
+
+        function addProfessor() {
+          const name = form.name.trim().replace(typedPrefixPattern, "");
+          const office = form.office.trim();
+          const subjects = form.subjects
+            .split(",")
+            .map((subject) => subject.trim())
+            .filter(Boolean);
+
+          if (!name || !form.department || !office || subjects.length === 0)
+            return setErrorMessage("Name, department, subject(s) and office are required.");
+          if (app.data.professors.some((p) => p.id !== editingId && p.name.toLowerCase() === name.toLowerCase()))
+            return setErrorMessage("That professor is already listed.");
+
+          const newProfessor = {
+            id: newId(),
+            prefix: form.prefix,
+            name,
+            department: form.department,
+            subjects,
+            office,
+            status: "available",
+            returnAt: null,
+            updatedAt: Date.now(),
+            dnd: null,
+            schedule: DEFAULT_CONSULT_DAYS.map((day) => ({
+              id: newId(),
+              type: "consult",
+              day,
+              start: DEFAULT_CONSULT_START,
+              end: DEFAULT_CONSULT_END,
+              label: office,
+              capacity: null,
+            })),
+          };
+
+          if (editingId) {
+            app.updateProfessor(editingId, { prefix: form.prefix, name, department: form.department, subjects, office });
+            app.showToast("Faculty details saved.");
+          } else {
+            app.updateData("professors", (list) => [...list, newProfessor]);
+            app.showToast(`${displayName(newProfessor)} added.`);
+          }
+          setEditingId(null);
+          setForm({ ...emptyForm, prefix: form.prefix });
+          setErrorMessage("");
+        }
+
+        function editProfessor(p) {
+          setEditingId(p.id);
+          setForm({ prefix: p.prefix, name: p.name, department: p.department, subjects: p.subjects.join(", "), office: p.office });
+          setErrorMessage("");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        function toggleActive(p) {
+          app.askToConfirm(`${p.active === false ? "Reactivate" : "Deactivate"} ${displayName(p)}? Past consultations and alerts will be preserved. Open bookings require manual follow-up.`, () => {
+            app.updateProfessor(p.id, { active: p.active === false });
+            if (p.active !== false) app.warnConflictingAppointments(p.id, "This faculty member has been deactivated. Please reschedule or contact your professor.");
+            app.showToast(p.active === false ? "Faculty reactivated." : "Faculty deactivated.");
+          });
+        }
+
+        return html`
+          <div class="stack manage-panel">
+            <div class="card editor-card">
+              <h3>${editingId ? "Edit professor" : "Add a professor"}</h3>
+              <div class="name-fields">
+                <label class="field-block"><span class="form-label">Title</span>
+                  <select value=${form.prefix} onChange=${(event) => setField("prefix", event.target.value)}>
+                    ${NAME_PREFIXES.map((prefix) => html`<option key=${prefix}>${prefix}</option>`)}
+                  </select>
+                </label>
+                <label class="field-block"><span class="form-label">Full name</span>
+                  <input placeholder="Enter professor's name" value=${form.name}
+                    onInput=${(event) => setField("name", event.target.value)} />
+                </label>
+              </div>
+              <div class="form-grid">
+                <label class="field-block"><span class="form-label">Department</span>
+                  <select value=${form.department} onChange=${(event) => setField("department", event.target.value)}>
+                    <option value="">Select department</option>
+                    ${DEPARTMENTS.map((code) => html`<option key=${code}>${code}</option>`)}
+                  </select>
+                </label>
+                <label class="field-block"><span class="form-label">Subjects</span>
+                  <input placeholder="Comma-separated subjects" value=${form.subjects}
+                    onInput=${(event) => setField("subjects", event.target.value)} />
+                </label>
+              </div>
+              <label class="field-block"><span class="form-label">Office location</span>
+                <input placeholder="e.g. Academic Building, Room 204" value=${form.office}
+                  onInput=${(event) => setField("office", event.target.value)} />
+              </label>
+              ${errorMessage && html`<div class="error-text">${errorMessage}</div>`}
+              <div class="row"><button class="primary" onClick=${addProfessor}>${editingId ? "Save details" : "Add professor"}</button>
+                ${editingId && html`<button onClick=${() => { setEditingId(null); setForm(emptyForm); setErrorMessage(""); }}>Cancel edit</button>`}</div>
+              <div class="small muted">
+                New professors start Available with default consultation hours (Mon–Fri, 1–3 PM),
+                editable in the Professor view.
+              </div>
+            </div>
+
+            <div class="section-heading"><h3>Faculty list</h3><span class="count-badge">${app.data.professors.length} total</span></div>
+            ${app.data.professors.length
+              ? app.data.professors.map(
+                  (professor) => html`
+                    <div class="card faculty-manage-card" key=${professor.id}>
+                      <div class="row">
+                        <div class="fill">
+                          <b>${displayName(professor)}</b>
+                          <div class="muted small">${professor.department} · ${professor.office} ${professor.active === false ? "· Deactivated" : ""}</div>
+                        </div>
+                        <button onClick=${() => editProfessor(professor)}>Edit</button>
+                        <button onClick=${() => toggleActive(professor)}>${professor.active === false ? "Reactivate" : "Deactivate"}</button>
+                      </div>
+                    </div>
+                  `,
+                )
+              : html`<div class="card muted">No professors yet. Add the first one above.</div>`}
+          </div>
+        `;
+      }
+
+      /* =====================================================================
+         14. MAIN APP: state, actions, and page layout
+         ===================================================================== */
+      function App() {
+        // ---- State ----
+        const [data, setData] = useState(loadData);
+        const [role, setRole] = useState("student"); // "student" | "professor" | "admin"
+        const [tab, setTab] = useState("directory");
+        const [selectedProfessorId, setSelectedProfessorId] = useState(""); // for the Professor view
+        const [now, setNow] = useState(Date.now());
+        const [toastMessage, setToastMessage] = useState(null);
+        const [confirmDialog, setConfirmDialog] = useState(null); // { message, onConfirm }
+        const [booking, setBooking] = useState(null); // { professorId, appointmentId? }
+        const [proposalId, setProposalId] = useState(null);
+        const [storageWarning, setStorageWarning] = useState(false);
+        const [isDark, setIsDark] = useState(document.documentElement.dataset.theme === "dark");
+
+        // Local-device persistence is for demonstration only; this is not shared or authenticated storage.
+        useEffect(() => {
+          try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); setStorageWarning(false); }
+          catch (e) { setStorageWarning(true); }
+        }, [data]);
+
+        // ---- Dark mode ----
+        useEffect(() => {
+          document.documentElement.dataset.theme = isDark ? "dark" : "light";
+        }, [isDark]);
+
+        // ---- Every 5 seconds: refresh the clock and expire Back-at timers / Do Not Disturb ----
+        useEffect(() => {
+          const intervalId = setInterval(() => {
+            const currentTime = Date.now();
+            setNow(currentTime);
+            setData((previous) => {
+              let somethingChanged = false;
+              const professors = previous.professors.map((professor) => {
+                let updated = professor;
+                if (professor.returnAt && professor.returnAt < currentTime) {
+                  // Timer ran out: the professor becomes Available
+                  updated = { ...updated, returnAt: null, status: "available", updatedAt: currentTime };
+                  somethingChanged = true;
+                }
+                if (professor.dnd && professor.dnd.until && professor.dnd.until < currentTime) {
+                  updated = { ...updated, dnd: null };
+                  somethingChanged = true;
+                }
+                return updated;
+              });
+              let appointments = previous.appointments;
+              const today = getPhilippineNow(currentTime);
+              appointments = appointments.map(a => {
+                if ((a.status === "Pending" && slotStartsInPast(a.date, a.time, currentTime)) || (a.status === "Proposed" && a.proposal && slotStartsInPast(a.proposal.date, a.proposal.time, currentTime))) {
+                  somethingChanged = true;
+                  return { ...a, status: "Expired" };
+                }
+                return a;
+              });
+              let notifications = previous.notifications;
+              // A reminder appears when this browser is open within 60 minutes of an approved visit.
+              appointments.filter(a => a.status === "Approved" && a.student === STUDENT_NAME && a.date === today.date
+                && timeToMinutes(a.time) > today.minutes && timeToMinutes(a.time) - today.minutes <= 60).forEach(a => {
+                  if (!notifications.some(n => n.reminderFor === a.id && n.reminderDate === a.date && n.reminderTime === a.time)) {
+                    notifications = [{ id: newId(), to: "student", professorId: a.professorId, text: `Reminder: your confirmed consultation is today at ${formatTime12h(a.time)}.`, read: false, createdAt: currentTime, reminderFor: a.id, reminderDate: a.date, reminderTime: a.time }, ...notifications];
+                    somethingChanged = true;
+                  }
+                });
+              return somethingChanged ? { ...previous, professors, appointments, notifications } : previous;
+            });
+          }, 5000);
+          return () => clearInterval(intervalId);
+        }, []);
+
+        // ---- Small data helpers ----
+        const showToast = (message) => {
+          setToastMessage(message);
+          setTimeout(() => setToastMessage(null), 3500);
+        };
+        const updateData = (key, updater) =>
+          setData((previous) => ({ ...previous, [key]: updater(previous[key]) }));
+        const findProfessor = (id) => data.professors.find((professor) => professor.id === id);
+        const updateProfessor = (id, changes) =>
+          updateData("professors", (list) => list.map((p) => (p.id === id ? { ...p, ...changes } : p)));
+        const setStatus = (id, status, returnAt = null) =>
+          updateProfessor(id, { status, returnAt, updatedAt: Date.now() });
+        const updateAppointment = (id, changes) =>
+          updateData("appointments", (list) => list.map((a) => (a.id === id ? { ...a, ...changes } : a)));
+        const notify = (to, professorId, text) =>
+          updateData("notifications", (list) => [
+            { id: newId(), to, professorId, text, read: false, createdAt: Date.now() },
+            ...list,
+          ]);
+
+        // The professor currently shown in the Professor view (defaults to the first one).
+        const currentProfessor = (findProfessor(selectedProfessorId)?.active !== false ? findProfessor(selectedProfessorId) : null) || data.professors.find(p => p.active !== false);
+        const currentProfessorId = currentProfessor && currentProfessor.id;
+
+        // ---- Booking helpers ----
+
+        // All open 30-minute consultation slots for the next 14 days (Philippine Time).
+        function getOpenSlots(professor) {
+          if (!professor || professor.active === false) return [];
+          const today = getPhilippineNow();
+          const slots = [];
+          const seen = new Set();
+          for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+            const date = addDays(today.date, dayOffset);
+            if (blocksDate(professor, date)) continue;
+            const weekday = getDayOfWeek(date);
+            professor.schedule.filter(x => x.type === "consult" && x.day === weekday).forEach(entry => {
+              for (let minutes = timeToMinutes(entry.start); minutes + 30 <= timeToMinutes(entry.end); minutes += 30) {
+                const time = minutesToTime(minutes);
+                const key = date + time;
+                if (seen.has(key) || slotStartsInPast(date, time) || classOverlaps(professor, weekday, minutes, minutes + 30)) continue;
+                seen.add(key);
+                slots.push({ date, time, capacity: entry.capacity });
+              }
+            });
+          }
+          return slots.sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+        }
+
+        // A slot is "taken" when pending + approved bookings reach its capacity (default 1).
+        function isSlotTaken(professorId, date, time, capacity, excludeId = null) {
+          const bookings = data.appointments.filter(
+            (a) =>
+              a.professorId === professorId &&
+              a.id !== excludeId &&
+              ((a.date === date && a.time === time && ["Pending", "Approved"].includes(a.status)) ||
+               (a.status === "Proposed" && a.proposal?.date === date && a.proposal?.time === time)),
+          );
+          return bookings.length >= (capacity || 1);
+        }
+
+        // Validates and creates a request. Returns an error message, or null on success.
+        function requestAppointment(professor, date, time, category, description, rescheduleId = null) {
+          const today = getPhilippineNow();
+          if (!professor || professor.active === false) return "This faculty member is not accepting requests.";
+          if (!date || !time) return "Choose a date and a time slot.";
+          if (description.trim().length < 5) return "Add a short description (at least 5 characters).";
+          if (date < today.date || (date === today.date && timeToMinutes(time) <= today.minutes))
+            return "That time has already passed.";
+
+          const slot = getOpenSlots(professor).find((s) => s.date === date && s.time === time);
+          if (!slot) return "That time is outside consultation hours.";
+          if (isSlotTaken(professor.id, date, time, slot.capacity, rescheduleId))
+            return "That slot is already booked — pick another.";
+
+          const original = rescheduleId && data.appointments.find(a => a.id === rescheduleId && a.professorId === professor.id && a.student === STUDENT_NAME && ["Pending", "Approved"].includes(a.status));
+          if (rescheduleId && !original) return "That appointment is no longer eligible for rescheduling.";
+          if (original && original.date === date && original.time === time) return "Choose a different time to reschedule.";
+          const record = { id: rescheduleId || newId(), student: STUDENT_NAME, professorId: professor.id, date, time, category, description: description.trim(), status: "Pending", response: "", createdAt: Date.now() };
+          updateData("appointments", list => rescheduleId ? list.map(a => a.id === rescheduleId ? record : a) : [record, ...list]);
+          notify(
+            "professor",
+            professor.id,
+            `${STUDENT_NAME} ${rescheduleId ? "requested a reschedule" : "requested a " + category + " consultation"} on ${formatDate(date)} at ${formatTime12h(time)}.`,
+          );
+          showToast(`${rescheduleId ? "Reschedule" : "Booking"} request sent — awaiting professor approval.`);
+          return null;
+        }
+
+        // ---- Everything the child components can call ----
+        const app = {
+          data,
+          role,
+          now,
+          currentProfessorId,
+          setTab,
+          showToast,
+          updateData,
+          findProfessor,
+          updateProfessor,
+          setStatus,
+          getOpenSlots,
+          isSlotTaken,
+          requestAppointment,
+          getAvailability: professor => availabilityFor(professor, now, data.appointments),
+          nextSlotText: professor => {
+            const next = getOpenSlots(professor).find(s => !isSlotTaken(professor.id, s.date, s.time, s.capacity));
+            return next ? `Next bookable: ${formatDate(next.date)} at ${formatTime12h(next.time)}` : "No open slots in the next 14 days";
+          },
+          openBooking: (professorId, appointmentId = null) => setBooking({ professorId, appointmentId }),
+          openProposal: appointment => setProposalId(appointment.id),
+          proposeTime: (appointment, date, time) => {
+            if (appointment.status !== "Pending") return "Only pending requests can receive alternative times.";
+            const prof = findProfessor(appointment.professorId);
+            const slot = getOpenSlots(prof).find(s => s.date === date && s.time === time);
+            if (!slot || isSlotTaken(prof.id, date, time, slot.capacity, appointment.id)) return "That time is no longer available.";
+            if (appointment.date === date && appointment.time === time) return "Choose a different time.";
+            updateAppointment(appointment.id, { status: "Proposed", proposal: { date, time } });
+            notify("student", prof.id, `${displayName(prof)} offered ${formatDate(date)} at ${formatTime12h(time)} instead. Accept or decline in My appointments.`);
+            showToast("Alternative time proposed to student.");
+            return null;
+          },
+          answerProposal: (appointment, accepted) => {
+            if (appointment.status !== "Proposed" || !appointment.proposal) return;
+            const professor = findProfessor(appointment.professorId);
+            const { date, time } = appointment.proposal;
+            if (accepted) {
+              const slot = getOpenSlots(professor).find(s => s.date === date && s.time === time);
+              if (!slot || isSlotTaken(professor.id, date, time, slot.capacity, appointment.id)) return showToast("Proposed slot is no longer available. Contact the professor.");
+            }
+            updateAppointment(appointment.id, accepted ? { date, time, status: "Approved", proposal: null, response: "Student accepted alternative time." } : { status: "Rejected", proposal: null, response: "Student declined proposed time." });
+            notify("professor", professor.id, `${STUDENT_NAME} ${accepted ? "accepted" : "declined"} the proposed consultation time.`);
+            showToast(accepted ? "Consultation confirmed." : "Suggested time declined.");
+          },
+          askToConfirm: (message, onConfirm) => setConfirmDialog({ message, onConfirm }),
+          warnConflictingAppointments: (professorId, message, appointmentIds = null) => {
+            const affected = data.appointments.filter(a => a.professorId === professorId && ["Pending", "Approved"].includes(a.status)
+              && !slotStartsInPast(a.date, a.time) && (!appointmentIds || appointmentIds.includes(a.id)));
+            affected.forEach(a => notify("student", professorId, `${formatDate(a.date)} at ${formatTime12h(a.time)}: ${message}`));
+          },
+          blockDates: (professor, absence) => {
+            const updated = { ...professor, exceptions: [...(professor.exceptions || []), { ...absence, id: newId() }] };
+            updateProfessor(professor.id, { exceptions: updated.exceptions });
+            const affected = data.appointments.filter(a => a.professorId === professor.id && ["Pending", "Approved"].includes(a.status)
+              && a.date >= absence.startDate && a.date <= absence.endDate && !slotStartsInPast(a.date, a.time));
+            affected.forEach(a => notify("student", professor.id, `${displayName(professor)} marked ${formatDate(a.date)} unavailable (${absence.reason}). Your ${a.status.toLowerCase()} booking may need rescheduling.`));
+          },
+          changeSchedule: (professor, updatedSchedule) => {
+            updateProfessor(professor.id, { schedule: updatedSchedule });
+            const changed = { ...professor, schedule: updatedSchedule };
+            data.appointments.filter(a => a.professorId === professor.id && ["Pending", "Approved"].includes(a.status) && !slotStartsInPast(a.date, a.time)
+              && appointmentConflicts(changed,a) && !appointmentConflicts(professor,a))
+              .forEach(a => notify("student", professor.id, `Schedule change: Your ${formatDate(a.date)} ${formatTime12h(a.time)} consultation now conflicts with a class. Please reschedule or contact ${displayName(professor)}.`));
+          },
+
+          toggleFavorite: (id) =>
+            updateData("favoriteIds", (ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id])),
+
+          // Professor approves or rejects a pending request.
+          decide: (appointment, newStatus, response) => {
+            if (appointment.status !== "Pending" || slotStartsInPast(appointment.date, appointment.time)) return showToast("This request can no longer be approved.");
+            const prof = findProfessor(appointment.professorId);
+            if (newStatus === "Approved" && !getOpenSlots(prof).some(s => s.date === appointment.date && s.time === appointment.time))
+              return showToast("The slot now conflicts with the schedule or a blocked date. Suggest another time or reject.");
+            updateAppointment(appointment.id, { status: newStatus, response: response.trim() });
+            notify(
+              "student",
+              null,
+              `${displayName(findProfessor(appointment.professorId))} ${newStatus.toLowerCase()} your ${appointment.category} request for ${formatDate(appointment.date)}, ${formatTime12h(appointment.time)}.`,
+            );
+            showToast(`Request ${newStatus.toLowerCase()}.`);
+          },
+
+          // Student cancels their own pending request.
+          cancel: (appointment) =>
+            ["Pending", "Approved"].includes(appointment.status) && !slotStartsInPast(appointment.date, appointment.time)
+              ? setConfirmDialog({
+              message: `Cancel your request to ${displayName(findProfessor(appointment.professorId))} on ${formatDate(appointment.date)}, ${formatTime12h(appointment.time)}?`,
+              onConfirm: () => {
+                updateAppointment(appointment.id, { status: "Cancelled" });
+                notify(
+                  "professor",
+                  appointment.professorId,
+                  `${appointment.student} cancelled the request for ${formatDate(appointment.date)}, ${formatTime12h(appointment.time)}.`,
+                );
+                showToast("Request cancelled.");
+              },
+            }) : showToast("This appointment can no longer be cancelled."),
+
+          // Professor marks an approved consultation as done.
+          complete: (appointment) => {
+            updateAppointment(appointment.id, { status: "Completed" });
+            notify(
+              "student",
+              null,
+              `Your consultation with ${displayName(findProfessor(appointment.professorId))} was marked completed.`,
+            );
+            showToast("Marked completed.");
+          },
+
+          respondToKnock: (notification, response) => {
+            if (notification.response) return;
+            updateData("notifications", list => list.map(n => n.id === notification.id ? { ...n, response, read: true } : n));
+            notify("student", notification.professorId, `${displayName(findProfessor(notification.professorId))} replied to your Knock: ${response}.`);
+            showToast("Knock response sent.");
+          },
+          // A Knock is a one-way request until faculty chooses a response; never a booking.
+          knock: professor => {
+            if (!["available", "unknown"].includes(availabilityFor(professor, Date.now(), data.appointments).status)) return showToast("Knock is currently unavailable.");
+            const recent = data.notifications.some(n => n.kind === "knock" && n.professorId === professor.id && Date.now() - n.createdAt < 15 * MINUTE);
+            if (recent) return showToast("You already knocked recently. Check Alerts for a reply.");
+            setConfirmDialog({
+              message: `Knock on ${displayName(professor)}? The professor may reply Come in, Please wait or Not available. A Knock is not an appointment.`,
+              onConfirm: () => {
+                updateData("notifications", list => [{ id: newId(), to: "professor", professorId: professor.id, kind: "knock", text: `${STUDENT_NAME} knocked — asking whether they may visit ${professor.office}.`, read: false, createdAt: Date.now(), response: null }, ...list]);
+                showToast("Knock sent. Check Alerts for a response.");
+              },
+            });
+          },
+        };
+
+        // ---- Layout ----
+        const unreadCount = data.notifications.filter(
+          (n) =>
+            !n.read &&
+            (role === "student" ? n.to === "student" : role === "professor" && n.to === "professor" && n.professorId === currentProfessorId),
+        ).length;
+
+        function switchRole(newRole) {
+          setRole(newRole);
+          setTab(TABS_BY_ROLE[newRole][0][0]); // open that role's first tab
+        }
+
+        const professorViewHasNoProfessor = role === "professor" && !currentProfessor;
+        const bookingProfessor = booking && findProfessor(booking.professorId);
+        const bookingAppointment = booking && booking.appointmentId && data.appointments.find(a => a.id === booking.appointmentId);
+        const proposalAppointment = proposalId && data.appointments.find(a => a.id === proposalId);
+
+        return html`
+          <div>
+            <header class="app-header">
+              <div class="header-inner">
+                <div class="brand-mark" aria-hidden="true">P</div>
+                <div class="brand-copy"><b class="app-title">Profraesto</b><span class="brand-subtitle">Faculty availability portal</span></div>
+                <div class="header-actions">
+                  <span class="header-label">Viewing as</span>
+                  <select class="role-select" aria-label="Switch user role" value=${role} onChange=${(event) => switchRole(event.target.value)}>
+                    <option value="student">Student</option>
+                    <option value="professor">Professor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button class="theme-toggle" title="Dark mode" aria-label="Toggle dark mode" onClick=${() => setIsDark(!isDark)}>${isDark ? "☀" : "☾"}</button>
+                </div>
+              </div>
+            </header>
+            <nav class="tabs" aria-label="Main navigation"><div class="tabs-inner">
+              ${TABS_BY_ROLE[role].map(
+                ([tabId, tabLabel]) => html`
+                  <button key=${tabId} class=${tab === tabId ? "active" : ""} aria-current=${tab === tabId ? "page" : undefined} onClick=${() => setTab(tabId)}>
+                    ${tabLabel}${tabId === "alerts" && unreadCount > 0 ? ` (${unreadCount})` : ""}${tabId === "requests" && data.appointments.some(a => a.professorId === currentProfessorId && a.status === "Pending") ? ` (${data.appointments.filter(a => a.professorId === currentProfessorId && a.status === "Pending").length})` : ""}
+                  </button>
+                `,
+              )}
+            </div></nav>
+
+            <main>
+              <div class="demo-warning" role="note"><b>Local prototype</b> — Data is saved only in this browser, not synced between users or devices. Role switching is for demonstration, not secure login. ${storageWarning ? "Your browser is blocking local storage; changes may disappear on refresh." : ""}</div>
+              <div class="page-intro">
+                <div>
+                  <span class="eyebrow">${role === "student" ? "Student portal" : role === "professor" ? "Faculty portal" : "Administration"}</span>
+                  <h1>${({ directory: "Faculty directory", appointments: "My appointments", alerts: "Notifications", status: "Availability status", requests: "Consultation requests", schedule: "Faculty schedule", manage: "Manage faculty" })[tab] || "Dashboard"}</h1>
+                  <p>${({ directory: "Check faculty availability and find the right time to connect.", appointments: "Review upcoming consultations and your request history.", alerts: "Stay informed about consultation updates and requests.", status: "Let students know when you're available for consultation.", requests: "Review, approve, and manage consultation requests.", schedule: "Manage your weekly class and consultation hours.", manage: "Add faculty members and maintain the directory." })[tab] || ""}</p>
+                </div>
+              </div>
+              ${professorViewHasNoProfessor
+                ? html`<div class="empty-state">No professors yet. Switch to Admin to add one.</div>`
+                : html`
+                    <div class="stack page-content">
+                      ${role === "professor" &&
+                      html`
+                        <div class="professor-picker">
+                          <label for="professor-view-select">Viewing as professor</label>
+                          <select id="professor-view-select" value=${currentProfessorId}
+                            onChange=${(event) => setSelectedProfessorId(event.target.value)}>
+                            ${data.professors.filter(p => p.active !== false).map(
+                              (professor) => html`<option key=${professor.id} value=${professor.id}>${displayName(professor)}</option>`,
+                            )}
+                          </select>
+                        </div>
+                      `}
+
+                      ${tab === "directory" && html`<${Directory} app=${app} />`}
+                      ${role === "student" &&
+                      tab === "appointments" &&
+                      html`<${AppointmentList}
+                        app=${app}
+                        professorView=${false}
+                        appointments=${data.appointments.filter((a) => a.student === STUDENT_NAME)}
+                      />`}
+                      ${tab === "alerts" && html`<${Notifications} app=${app} />`}
+                      ${role === "professor" &&
+                      tab === "status" &&
+                      html`<${StatusPanel} key=${currentProfessorId} app=${app} professor=${currentProfessor} />`}
+                      ${role === "professor" &&
+                      tab === "requests" &&
+                      html`<${AppointmentList}
+                        app=${app}
+                        professorView=${true}
+                        appointments=${data.appointments.filter((a) => a.professorId === currentProfessorId)}
+                      />`}
+                      ${role === "professor" &&
+                      tab === "schedule" &&
+                      html`<${SchedulePanel} key=${currentProfessorId} app=${app} professor=${currentProfessor} />`}
+                      ${tab === "manage" && html`<${ManageFaculty} app=${app} />`}
+
+                      <footer class="demo-footer">Demo prototype · fictional data · not an official LPU-Davao application.</footer>
+                    </div>
+                  `}
+            </main>
+
+            ${bookingProfessor &&
+            html`<${BookingDialog}
+              key=${bookingProfessor.id + (bookingAppointment ? bookingAppointment.id : "new")}
+              professor=${bookingProfessor}
+              appointment=${bookingAppointment}
+              app=${app}
+              onClose=${() => setBooking(null)}
+            />`}
+
+            ${proposalAppointment && findProfessor(proposalAppointment.professorId) && html`<${ProposalDialog}
+              appointment=${proposalAppointment}
+              professor=${findProfessor(proposalAppointment.professorId)}
+              app=${app}
+              onClose=${() => setProposalId(null)}
+            />`}
+
+            ${confirmDialog &&
+            html`
+              <div class="overlay" style=${{ zIndex: 70 }}>
+                <div class="modal">
+                  <h3>Confirm action</h3>
+                  <div>${confirmDialog.message}</div>
+                  <div class="modal-actions">
+                    <button onClick=${() => setConfirmDialog(null)}>Cancel</button>
+                    <button
+                      class="primary"
+                      onClick=${() => {
+                        confirmDialog.onConfirm();
+                        setConfirmDialog(null);
+                      }}
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `}
+            ${toastMessage && html`<div class="toast">${toastMessage}</div>`}
+          </div>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>
