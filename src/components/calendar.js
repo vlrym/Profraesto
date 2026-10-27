@@ -47,7 +47,7 @@ export function FacultyCalendar({ app, professor }) {
   }
   function deleteEvent(event) {
     setSelected(null);
-    app.askToConfirm(`${event.source === 'schedule' ? 'Delete this weekly entry on every occurrence' : 'Delete this event'}: “${event.label}”? Affected consultations will need attention.`, () => {
+    app.askToConfirm(`${event.source === 'schedule' ? 'Delete this event from every week' : 'Delete this event'}: “${event.label}”? Any consultations that no longer fit your schedule will need a new time.`, () => {
       const collection = event.source === 'schedule' ? 'schedule' : event.source === 'exception' ? 'exceptions' : 'events';
       app.updateProfessor(professor.id, { [collection]:(professor[collection] || []).filter(x => x.id !== event.id) });
       app.showToast('Calendar event deleted.');
@@ -66,13 +66,13 @@ export function FacultyCalendar({ app, professor }) {
   return html`<section class="faculty-calendar" aria-label="Faculty calendar">
     <div class="calendar-status"><div><strong class=${'live-availability status-' + availability.status}>${availability.reason}</strong>
       <span class="small muted">${availability.until ? 'Until ' + formatClock(availability.until) + ' · ' : ''}${availability.detail}</span></div>
-      <button onClick=${() => setOverrideOpen(true)}>Override availability</button></div>
+      <button onClick=${() => setOverrideOpen(true)}>Update my availability</button></div>
     <div class="calendar-toolbar">
       <div class="row"><button onClick=${() => setDate(today.date)}>Today</button><button aria-label="Previous period" onClick=${() => setDate(navigateCalendar(date,view,-1))}>‹</button><button aria-label="Next period" onClick=${() => setDate(navigateCalendar(date,view,1))}>›</button>
       <h2>${view === 'month' ? new Date(date + 'T00:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'long',year:'numeric'}) : view === 'day' ? formatDate(date) : `${formatDate(range.start)} – ${formatDate(range.end)}`}</h2></div>
       <div class="row"><div class="view-switch" aria-label="Calendar view">${['day','week','month'].map(mode => html`<button key=${mode} aria-pressed=${view === mode} class=${view === mode ? 'active' : ''} onClick=${() => setView(mode)}>${mode[0].toUpperCase()+mode.slice(1)}</button>`)}</div><button class="primary" onClick=${() => addEvent()}>Add event</button></div>
     </div>
-    <div class="calendar-legend"><span class="legend-class">Class</span><span class="legend-consult">Consultation hours</span><span class="legend-appointment">Approved consultation</span><span class="legend-meeting">Meeting</span><span class="legend-unavailable">Unavailable</span><span class="legend-office">Office hours</span><span class="legend-pending">Pending / needs action</span><span class="timezone-label">Asia/Manila</span></div>
+    <div class="calendar-legend"><span class="legend-class">Class</span><span class="legend-consult">Consultation hours</span><span class="legend-appointment">Approved consultation</span><span class="legend-meeting">Meeting</span><span class="legend-unavailable">Unavailable</span><span class="legend-office">Office hours</span><span class="legend-pending">Pending / needs action</span><span class="timezone-label">Philippine Time</span></div>
     ${view === 'month' ? html`<div class="month-scroll"><div class="month-calendar">
       ${[1,2,3,4,5,6,0].map(day => html`<div class="month-weekday" key=${day}>${DAY_NAMES[day]}</div>`)}
       ${range.days.map(day => html`<div key=${day} class=${`month-day ${day === today.date ? 'is-today' : ''} ${day.slice(0,7) !== date.slice(0,7) ? 'outside-month' : ''}`}>
@@ -106,8 +106,8 @@ export function FacultyCalendar({ app, professor }) {
         <h3>${selectedEvent.label}</h3><p>${CALENDAR_TYPES[selectedEvent.type] || 'Cancelled class'} · ${formatDate(selectedEvent.date)} · ${selectedEvent.start}–${selectedEvent.end}</p>
         ${selectedEvent.type === 'class' && html`<p>${formatRoomLocation(selectedEvent.building,selectedEvent.room) || 'Room not specified'}</p>`}
         <div class="row"><button class="primary" onClick=${() => editEvent(selectedEvent)}>Edit event</button><button onClick=${() => deleteEvent(selectedEvent)}>Delete event</button></div>
-        ${selectedEvent.type === 'class' && html`<button onClick=${() => {app.blockDates(professor,{kind:'cancel-class',classId:selectedEvent.id,startDate:selectedEvent.date,endDate:selectedEvent.date,reason:'Class cancelled'});setSelected(null);app.showToast('This class occurrence was cancelled.');}}>Cancel only this occurrence</button>`}
-        ${selectedEvent.type === 'cancelled-class' && html`<button class="primary" onClick=${() => {app.updateProfessor(professor.id,{exceptions:professor.exceptions.filter(x => !(x.kind === 'cancel-class' && x.classId === selectedEvent.id && x.startDate === selectedEvent.date))});setSelected(null);app.showToast('Class occurrence restored.');}}>Restore this occurrence</button>`}
+        ${selectedEvent.type === 'class' && html`<button onClick=${() => {app.blockDates(professor,{kind:'cancel-class',classId:selectedEvent.id,startDate:selectedEvent.date,endDate:selectedEvent.date,reason:'Class cancelled'});setSelected(null);app.showToast('This class has been cancelled for the selected date.');}}>Cancel class on this date</button>`}
+        ${selectedEvent.type === 'cancelled-class' && html`<button class="primary" onClick=${() => {app.updateProfessor(professor.id,{exceptions:professor.exceptions.filter(x => !(x.kind === 'cancel-class' && x.classId === selectedEvent.id && x.startDate === selectedEvent.date))});setSelected(null);app.showToast('This class is back on your calendar.');}}>Restore class on this date</button>`}
       `}
     <//>`}
   </section>`;

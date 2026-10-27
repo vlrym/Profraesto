@@ -13,8 +13,8 @@ export const overlaps = (start, end, otherStart, otherEnd) => start < otherEnd &
 export const toTimestamp = (date, time) => new Date(`${date}T${time}:00+08:00`).getTime();
 
 export function validateScheduleEntry(entry) {
-  if (!entry || !['class', 'consult', 'office'].includes(entry.type) || !Number.isInteger(entry.day) || entry.day < 0 || entry.day > 6) return 'Choose a valid entry type and day.';
-  if (!isValidTime(entry.start) || !isValidTime(entry.end) || entry.start >= entry.end) return 'Enter valid times; end must be after start. Split overnight classes into two entries.';
+  if (!entry || !['class', 'consult', 'office'].includes(entry.type) || !Number.isInteger(entry.day) || entry.day < 0 || entry.day > 6) return 'Choose an event type and a day of the week.';
+  if (!isValidTime(entry.start) || !isValidTime(entry.end) || entry.start >= entry.end) return 'Choose an end time later than the start time. For a class that continues past midnight, add a separate event for each day.';
   if (typeof entry.label !== 'string' || !entry.label.trim() || entry.label.length > 120) return 'Enter a subject or location of 1–120 characters.';
   if (entry.type === 'class' && !formatRoomLocation(entry.building, entry.room)) return 'Choose a building and enter exactly three room digits.';
   return '';
@@ -27,11 +27,11 @@ export function validateCalendarEvent(professor, event) {
   if (!event || !['meeting', 'unavailable'].includes(event.type)) return 'Choose a valid event type.';
   if (typeof event.label !== 'string' || !event.label.trim() || event.label.length > 120) return 'Enter a title of 1–120 characters.';
   if (!isValidDate(event.date) || !isValidDate(event.endDate || event.date)) return 'Choose valid dates.';
-  if (!isValidTime(event.start) || !isValidTime(event.end) || toTimestamp(event.date, event.start) >= toTimestamp(event.endDate || event.date, event.end)) return 'End must be after start.';
+  if (!isValidTime(event.start) || !isValidTime(event.end) || toTimestamp(event.date, event.start) >= toTimestamp(event.endDate || event.date, event.end)) return 'Choose an end time later than the start time.';
   if (event.type === 'unavailable') return '';
   const start = toTimestamp(event.date, event.start);
   const end = toTimestamp(event.endDate || event.date, event.end);
-  if (end - start > 24 * 60 * MINUTE) return 'A meeting must be 24 hours or shorter. Use Unavailable for longer blocks.';
+  if (end - start > 24 * 60 * MINUTE) return 'For time away longer than 24 hours, choose Unavailable instead of Meeting.';
   const conflict = getCalendarEvents(professor, event.date, event.endDate || event.date).find(other =>
     !(other.source === 'event' && other.id === event.id) && ['class', 'meeting'].includes(other.type) && overlaps(start, end, other.startAt, other.endAt));
   return conflict ? `This overlaps ${conflict.label}. Choose another time.` : '';
@@ -116,7 +116,7 @@ export function validateConsultationRequest(professor, appointment, appointments
   if (!appointment.description?.trim() || appointment.description.trim().length < 5 || appointment.description.length > 1000) return 'Describe your concern in 5–1000 characters.';
   const conflict = appointmentConflicts(professor, appointment);
   if (conflict) return conflict;
-  if (isSlotTaken(appointments, professor.id, appointment.date, appointment.time, excludeId, appointment.student)) return 'This time is already reserved for the professor or student. Choose another slot.';
+  if (isSlotTaken(appointments, professor.id, appointment.date, appointment.time, excludeId, appointment.student)) return 'This time is already reserved for the professor or student. Please choose another time.';
   return '';
 }
 
@@ -142,7 +142,7 @@ export function getProfessorAvailability(professor, timestamp = Date.now(), appo
   const consultation = events.find(event => event.type === 'appointment' && event.status === 'Approved');
   if (consultation) return { status:'consultation', reason:'In a Consultation', detail:'Confirmed appointment', until:consultation.endAt };
   if (manual && ['available', 'busy', 'meeting'].includes(manual.status)) return { status:manual.status, reason:manual.status === 'available' ? 'Available' : manual.status === 'meeting' ? 'In a Meeting' : 'Busy', detail:'Confirmed by faculty', confirmedAt:manual.setAt, until:manual.until };
-  return { status:'unknown', reason:'Status Unconfirmed', detail:'No current availability confirmation' };
+  return { status:'unknown', reason:'Status Unconfirmed', detail:'Availability has not been confirmed recently.' };
 }
 export const availabilityFor = getProfessorAvailability;
 export function getNextScheduledClass(professor, timestamp = Date.now()) {

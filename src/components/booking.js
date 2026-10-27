@@ -29,8 +29,8 @@ export function BookingDialog({ professor, app, onClose, appointment = null }) {
   return html`
     <${Modal} onClose=${onClose}>
       <h3>${appointment ? "Request a different time" : "Book a consultation"}</h3>
-      <div class="info-banner">A request is <b>not confirmed</b> until the professor approves it. Pending slots are held to prevent duplicate requests.</div>
-      ${appointment && html`<p class="small muted">Your previous time remains reserved until this change is submitted. The revised request returns to Pending.</p>`}
+      <div class="info-banner">A request is <b>not confirmed</b> until the professor approves it. Your chosen time is held while you wait for a reply.</div>
+      ${appointment && html`<p class="small muted">Your current time stays reserved until you send this request. The professor will then review your new time.</p>`}
       <p class="modal-subtitle">With <b>${displayName(professor)}</b> · ${consultationHoursText(professor)} (Philippine Time)</p>
 
       ${availableDates.length
@@ -71,7 +71,7 @@ export function BookingDialog({ professor, app, onClose, appointment = null }) {
                 })}
             </div><p class="small muted">Classes, meetings and unavailable periods are excluded.</p></div>
           `
-        : html`<div class="error-text">${professor.schedule.some(x => ['consult','office'].includes(x.type)) ? `No eligible times in the next ${BOOKING_HORIZON_DAYS} days. Calendar commitments or an availability override block these hours.` : 'No consultation or office hours have been posted.'}</div>`}
+        : html`<div class="error-text">${professor.schedule.some(x => ['consult','office'].includes(x.type)) ? `No consultation times are available in the next ${BOOKING_HORIZON_DAYS} days. Please check back later or contact the professor.` : 'No consultation or office hours have been posted.'}</div>`}
 
       <label class="field-block"><span class="form-label">Reason for consultation</span>
         <select value=${category} onChange=${(event) => setCategory(event.target.value)}>
@@ -101,17 +101,17 @@ export function ProposalDialog({ appointment, professor, app, onClose }) {
   const [error, setError] = useState("");
   return html`<${Modal} onClose=${onClose}>
     <h3>Suggest another consultation time</h3>
-    <p class="modal-subtitle">The student must accept before the appointment is confirmed.</p>
+    <p class="modal-subtitle">Choose a time that works for you. The consultation will be confirmed once the student accepts.</p>
     ${dates.length ? html`
       <label class="field-block"><span class="form-label">Date</span><select value=${date} onChange=${e => { setDate(e.target.value); setTime(""); }}>
         ${dates.map(d => html`<option key=${d} value=${d}>${formatDate(d)}</option>`)}
       </select></label>
       <div class="field-block"><span class="form-label">Time</span><div class="slot-grid">
         ${slots.filter(s => s.date === date).map(s => html`<button key=${s.time} class=${"chip" + (s.time === time ? " selected" : "")} onClick=${() => setTime(s.time)}>${formatTime12h(s.time)}</button>`)}
-      </div></div>` : html`<div class="error-text">No alternative consultation slots are available.</div>`}
+      </div></div>` : html`<div class="error-text">There are no other consultation times available right now.</div>`}
     ${error && html`<div class="error-text">${error}</div>`}
     <div class="modal-actions"><button onClick=${onClose}>Cancel</button>
-      <button class="primary" disabled=${!date || !time} onClick=${() => { const msg = app.proposeTime(appointment, date, time); if (msg) setError(msg); else onClose(); }}>Send proposal</button>
+      <button class="primary" disabled=${!date || !time} onClick=${() => { const msg = app.proposeTime(appointment, date, time); if (msg) setError(msg); else onClose(); }}>Send suggested time</button>
     </div>
   <//>`;
 }

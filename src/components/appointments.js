@@ -26,12 +26,12 @@ export function AppointmentRow({ appointment, app, professorView }) {
         </span>
       </div>
       <div class="muted small appointment-details">${details.join(" · ")}</div>
-      ${appointment.status === "Pending" && html`<div class="info-banner">Awaiting professor approval. Do not treat this as a confirmed consultation.</div>`}
+      ${appointment.status === "Pending" && html`<div class="info-banner">${professorView ? 'Waiting for your reply. You can approve, decline or suggest another time.' : 'Waiting for the professor to reply. Your consultation will be confirmed once approved.'}</div>`}
       ${appointment.status === "Approved" && html`<div class="success-note">Confirmed consultation · ${formatDate(appointment.date)} at ${formatTime12h(appointment.time)}</div>`}
-      ${["Pending", "Approved", "Needs action"].includes(appointment.status) && appointmentConflicts(professor, appointment) && html`<div class="error-text">Schedule conflict: ${appointmentConflicts(professor, appointment)}. Please contact the professor or reschedule.</div>`}
-      ${appointment.status === "Needs action" && html`<div class="error-text">Please request a new time. This appointment is no longer confirmed.</div>`}
+      ${["Pending", "Approved", "Needs action"].includes(appointment.status) && appointmentConflicts(professor, appointment) && html`<div class="error-text">${appointmentConflicts(professor, appointment)}. ${professorView ? 'Please arrange a new time with the student.' : 'Please contact the professor or request another time.'}</div>`}
+      ${appointment.status === "Needs action" && html`<div class="error-text">${professorView ? 'This consultation needs a new time. The student has been notified.' : 'Your consultation needs a new time. Please send another request.'}</div>`}
       ${appointment.status === "Expired" && html`<div class="muted small">This request passed without a response. Please choose another time.</div>`}
-      ${appointment.status === "Proposed" && appointment.proposal && html`<div class="info-banner">Professor suggested <b>${formatDate(appointment.proposal.date)} at ${formatTime12h(appointment.proposal.time)}</b>. This time is not confirmed until you accept.</div>`}
+      ${appointment.status === "Proposed" && appointment.proposal && html`<div class="info-banner">${professorView ? 'You suggested' : 'The professor suggested'} <b>${formatDate(appointment.proposal.date)} at ${formatTime12h(appointment.proposal.time)}</b>. ${professorView ? 'Waiting for the student to accept.' : 'Accept this time to confirm your consultation.'}</div>`}
       <div class="appointment-description">${appointment.description}</div>
       ${appointment.response && html`<div class="appointment-response"><b>Response:</b> ${appointment.response}</div>`}
 
@@ -40,7 +40,7 @@ export function AppointmentRow({ appointment, app, professorView }) {
       html`
         <div class="row appointment-actions">
           <input
-            aria-label="Optional response" placeholder="Optional response"
+            aria-label="Add a message (optional)" placeholder="Add a message (optional)"
             value=${responseText}
             onInput=${(event) => setResponseText(event.target.value)}
           />
@@ -53,7 +53,7 @@ export function AppointmentRow({ appointment, app, professorView }) {
       `}
       ${professorView &&
       appointment.status === "Approved" &&
-      html`<div><button disabled=${domain.toTimestamp(appointment.date, appointment.time) > app.now} onClick=${() => app.complete(appointment)}>Mark completed</button><button onClick=${() => app.cancel(appointment)}>Cancel consultation</button></div>`}
+      html`<div><button disabled=${domain.toTimestamp(appointment.date, appointment.time) > app.now} onClick=${() => app.complete(appointment)}>Mark as completed</button><button onClick=${() => app.cancel(appointment)}>Cancel consultation</button></div>`}
       ${!professorView && appointment.status === "Proposed" && html`<div class="row appointment-actions">
         <button class="primary" onClick=${() => app.answerProposal(appointment, true)}>Accept proposed time</button>
         <button onClick=${() => app.answerProposal(appointment, false)}>Decline</button>
@@ -94,7 +94,7 @@ export function AppointmentList({ app, appointments, professorView }) {
     <div class="stack appointment-view">
       <section class="appointment-section">
         <div class="section-heading"><h3>Upcoming</h3><span class="section-caption">Pending, proposed & confirmed consultations</span></div>
-        ${renderSection(true, true, "Nothing upcoming.")}
+        ${renderSection(true, true, "No upcoming consultations yet.")}
       </section>
       <section class="appointment-section">
         <div class="section-heading"><h3>History</h3><span class="section-caption">Previous requests and consultations</span></div>

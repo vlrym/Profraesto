@@ -20,7 +20,7 @@ export function EventEditor({ app, professor, selection, onClose }) {
   function save(event) {
     event.preventDefault();
     if (recurring) {
-      if (!form.days.length) return setError('Select at least one recurring day.');
+      if (!form.days.length) return setError('Choose at least one day of the week.');
       const entries = form.days.map((day, index) => ({
         id: index === 0 && original?.source === 'schedule' ? original.id : newId(),
         type:form.type, day, start:form.start, end:form.end,
@@ -31,7 +31,7 @@ export function EventEditor({ app, professor, selection, onClose }) {
       for (const entry of entries) {
         const validation = validateScheduleEntry(entry);
         if (validation) return setError(validation);
-        if (hasScheduleConflict(retained, entry)) return setError('This overlaps another recurring entry of the same type.');
+        if (hasScheduleConflict(retained, entry)) return setError('You already have an event of this type at that time. Please choose another time.');
       }
       const schedule = [...retained, ...entries];
       for (const meeting of (professor.events || []).filter(x => x.type === 'meeting')) {
@@ -41,7 +41,7 @@ export function EventEditor({ app, professor, selection, onClose }) {
       app.updateProfessor(professor.id, { schedule });
     } else {
       if (!isValidDate(form.date) || !isValidDate(form.endDate)) return setError('Choose valid dates.');
-      if (form.endDate < form.date) return setError('End date must not precede the start date.');
+      if (form.endDate < form.date) return setError('Choose an end date on or after the start date.');
       const saved = {
         id: original?.source === 'event' ? original.id : newId(), type:form.type, label:form.label.trim(),
         date:form.date, endDate:form.allDay ? addDays(form.endDate, 1) : form.endDate,
@@ -55,7 +55,7 @@ export function EventEditor({ app, professor, selection, onClose }) {
         exceptions:(professor.exceptions || []).filter(x => !(original?.source === 'exception' && x.id === original.id))
       });
     }
-    app.showToast('Event saved.');
+    app.showToast('Your calendar has been updated.');
     onClose();
   }
 
@@ -69,8 +69,8 @@ export function EventEditor({ app, professor, selection, onClose }) {
       ${form.type === 'unavailable' && html`<label class="check-row"><input type="checkbox" checked=${form.allDay} onChange=${e => setField('allDay',e.target.checked)} />All day</label>`}
       ${!form.allDay && html`<div class="form-grid"><label class="field-block"><span class="form-label">Start time</span><input type="time" value=${form.start} onInput=${e => setField('start',e.target.value)} /></label><label class="field-block"><span class="form-label">End time</span><input type="time" value=${form.end} onInput=${e => setField('end',e.target.value)} /></label></div>`}
       ${form.type === 'class' && html`<div class="form-grid"><label class="field-block"><span class="form-label">Building</span><select value=${form.building} onChange=${e => setField('building',e.target.value)}>${BUILDINGS.map(building => html`<option key=${building}>${building}</option>`)}</select></label><label class="field-block"><span class="form-label">Room number</span><input inputMode="numeric" maxLength="3" value=${form.room} onInput=${e => setField('room',e.target.value)} placeholder="401" /></label></div>`}
-      ${form.type === 'office' && html`<p class="small muted">These hours permit Available and consultation booking. This describes planned availability, not verified presence.</p>`}
-      ${original?.source === 'schedule' && html`<p class="small muted">Changes apply to this recurring entry every week.</p>`}
+      ${form.type === 'office' && html`<p class="small muted">Students can request consultations during these hours. Use Update my availability to let them know when you are available.</p>`}
+      ${original?.source === 'schedule' && html`<p class="small muted">These changes apply to this event every week.</p>`}
       ${error && html`<div class="error-text" role="alert">${error}</div>`}
       <div class="modal-actions"><button type="button" onClick=${onClose}>Cancel</button><button class="primary" type="submit">Save event</button></div>
     </form>`;

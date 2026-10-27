@@ -16,20 +16,20 @@ export function OverridePanel({ app, professor, onClose }) {
       ? toTimestamp(addDays(today, 1), '00:00') : toTimestamp(today, time);
     if (duration === 'time' && (!isValidTime(time) || until <= now)) return setError('Choose a time later today.');
     app.updateProfessor(professor.id, { override: { status, setAt:now, until }, status:'unknown', returnAt:null, dnd:null });
-    app.showToast('Availability override saved.');
+    app.showToast('Your availability has been updated.');
     onClose();
   }
-  return html`<h3>Availability override</h3>
-    <p class="small muted">Use for an unexpected change. Classes, meetings and confirmed consultations still take priority over Available.</p>
-    ${current && html`<p class="small">Current override: ${STATUS_INFO[current.status].label} · ${current.until ? 'until ' + formatClock(current.until) : 'until changed'}</p>`}
+  return html`<h3>Update my availability</h3>
+    <p class="small muted">Let students know when you can meet. When you choose Available, your classes, meetings and confirmed consultations will still show as busy time.</p>
+    ${current && html`<p class="small">Your current availability: ${STATUS_INFO[current.status].label} · ${current.until ? 'until ' + formatClock(current.until) : 'until changed'}</p>`}
     <label class="field-block"><span class="form-label">Status</span><select value=${status} onChange=${e => setStatus(e.target.value)}>${['unavailable', 'available', 'meeting', 'busy'].map(key => html`<option key=${key} value=${key}>${STATUS_INFO[key].label}</option>`)}</select></label>
-    <label class="field-block"><span class="form-label">Keep this override</span><select value=${duration} onChange=${e => setDuration(e.target.value)}><option value="today">For the rest of today</option><option value="changed">${status === 'available' ? 'Until confirmation expires' : 'Until I change it'}</option><option value="time">Until a time today</option></select></label>
-    ${status === 'available' && html`<p class="small muted">Confirm Available again within ${AVAILABILITY_CONFIRMATION.inactivityMinutes / 60} hours and each working day by ${AVAILABILITY_CONFIRMATION.dayStart} (Asia/Manila). Earlier confirmations on the same date count. A shorter override duration still applies.</p>`}
+    <label class="field-block"><span class="form-label">Keep this status</span><select value=${duration} onChange=${e => setDuration(e.target.value)}><option value="today">For the rest of today</option><option value="changed">${status === 'available' ? `For the next ${AVAILABILITY_CONFIRMATION.inactivityMinutes / 60} hours` : 'Until I change it'}</option><option value="time">Until a specific time today</option></select></label>
+    ${status === 'available' && html`<p class="small muted">Please check in again within ${AVAILABILITY_CONFIRMATION.inactivityMinutes / 60} hours to keep showing Available. Each new day, check in by ${formatClock(toTimestamp(getPhilippineNow(app.now).date, AVAILABILITY_CONFIRMATION.dayStart))} (Philippine Time); checking in earlier that day is fine. If you choose an earlier end time, we will use that instead.</p>`}
     ${duration === 'time' && html`<label class="field-block"><span class="form-label">Until</span><input type="time" value=${time} onInput=${e => setTime(e.target.value)} /></label>`}
-    ${status === 'unavailable' && html`<p class="small muted">Existing consultations within this override will need a new time.</p>`}
+    ${status === 'unavailable' && html`<p class="small muted">Consultations during this time will need to be rescheduled. Students will see an update.</p>`}
     ${error && html`<div class="error-text" role="alert">${error}</div>`}
     <div class="modal-actions">
-      ${(current || professor.dnd) && html`<button onClick=${() => { app.updateProfessor(professor.id, { override:null, status:'unknown', returnAt:null, dnd:null }); app.showToast('Calendar availability restored.'); onClose(); }}>Use calendar again</button>`}
-      <button class="primary" onClick=${save}>Save override</button>
+      ${(current || professor.dnd) && html`<button onClick=${() => { app.updateProfessor(professor.id, { override:null, status:'unknown', returnAt:null, dnd:null }); app.showToast('Your availability now follows your calendar.'); onClose(); }}>Follow my calendar</button>`}
+      <button class="primary" onClick=${save}>Save availability</button>
     </div>`;
 }

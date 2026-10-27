@@ -141,7 +141,7 @@ function App() {
     if (!slot) return "That time is outside consultation hours.";
 
     const original = rescheduleId && data.appointments.find(a => a.id === rescheduleId && a.professorId === professor.id && a.student === STUDENT_NAME && ["Pending", "Approved", "Needs action"].includes(a.status));
-    if (rescheduleId && !original) return "That appointment is no longer eligible for rescheduling.";
+    if (rescheduleId && !original) return "This appointment can no longer be rescheduled.";
     if (original && original.date === date && original.time === time) return "Choose a different time to reschedule.";
     const record = { id: rescheduleId || newId(), student: STUDENT_NAME, professorId: professor.id, date, time, category, description: description.trim(), status: "Pending", response: "", createdAt: Date.now() };
     updateData("appointments", list => rescheduleId ? list.map(a => a.id === rescheduleId ? record : a) : [record, ...list]);
@@ -172,7 +172,7 @@ function App() {
     openBooking: (professorId, appointmentId = null) => setBooking({ professorId, appointmentId }),
     openProposal: appointment => setProposalId(appointment.id),
     proposeTime: (appointment, date, time) => {
-      if (appointment.status !== "Pending") return "Only pending requests can receive alternative times.";
+      if (appointment.status !== "Pending") return "You can suggest a new time while a request is waiting for your reply.";
       const prof = findProfessor(appointment.professorId);
       const slot = getOpenSlots(prof).find(s => s.date === date && s.time === time);
       if (!slot || isSlotTaken(prof.id, date, time, slot.capacity, appointment.id)) return "That time is no longer available.";
@@ -188,7 +188,7 @@ function App() {
       const { date, time } = appointment.proposal;
       if (accepted) {
         const slot = getOpenSlots(professor).find(s => s.date === date && s.time === time);
-        if (!slot || isSlotTaken(professor.id, date, time, slot.capacity, appointment.id)) return showToast("Proposed slot is no longer available. Contact the professor.");
+        if (!slot || isSlotTaken(professor.id, date, time, slot.capacity, appointment.id)) return showToast("That suggested time is no longer available. Please contact the professor for another time.");
       }
       updateAppointment(appointment.id, accepted ? { date, time, status: "Approved", proposal: null, response: "Student accepted alternative time." } : { status: "Rejected", proposal: null, response: "Student declined proposed time." });
       notify("professor", appointment.professorId, `${STUDENT_NAME} ${accepted ? "accepted" : "declined"} the proposed consultation time.`);
@@ -207,7 +207,7 @@ function App() {
       if (appointment.status !== "Pending" || slotStartsInPast(appointment.date, appointment.time)) return showToast("This request can no longer be approved.");
       const prof = findProfessor(appointment.professorId);
       if (newStatus === "Approved" && !getOpenSlots(prof).some(s => s.date === appointment.date && s.time === appointment.time))
-        return showToast("The slot now conflicts with the schedule or a blocked date. Suggest another time or reject.");
+        return showToast("This time no longer fits your calendar. Please suggest another time or decline the request.");
       if (newStatus === "Approved" && isSlotTaken(prof.id, appointment.date, appointment.time, 1, appointment.id)) return showToast("This time is already reserved.");
     updateAppointment(appointment.id, { status: newStatus, response: response.trim() });
       notify(
@@ -243,7 +243,7 @@ function App() {
         null,
         `Your consultation with ${displayName(findProfessor(appointment.professorId))} was marked completed.`,
       );
-      showToast("Marked completed.");
+      showToast("Consultation marked as completed.");
     },
 
     respondToKnock: (notification, response) => {
