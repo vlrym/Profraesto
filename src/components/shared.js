@@ -2,7 +2,7 @@ import { STATUS_INFO } from '../../config/settings.js';
 import { useEffect, useRef, html } from '../ui.js';
 export function StatusPill({ status, label }) {
   const { color, icon } = STATUS_INFO[status];
-  return html`<span class="pill" style=${{ "--color": color }}>${icon} ${label || STATUS_INFO[status].label}</span>`;
+  return html`<span class="pill" style=${{ "--color": color }}>${icon ? icon + ' ' : ''}${label || STATUS_INFO[status].label}</span>`;
 }
 
 export function Modal({ onClose, children }) {

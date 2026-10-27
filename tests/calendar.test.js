@@ -57,12 +57,11 @@ test('overnight meeting is clipped to each calendar day and ends at correct Mani
   assert.equal(getProfessorAvailability(p,at('00:29','2026-10-27')).status,'meeting');
   assert.equal(getProfessorAvailability(p,at('00:30','2026-10-27')).status,'unknown');
 });
-test('configured office hours permit Available, ordinary consultation windows do not', () => {
+test('office and consultation hours stay bookable without asserting Available', () => {
   const p = professor();
   assert.equal(getProfessorAvailability(p,at('13:00')).status,'unknown');
   p.schedule.push({id:'office',type:'office',day:1,start:'11:00',end:'12:00',label:'SHL 305'});
-  assert.equal(getProfessorAvailability(p,at('11:00')).status,'available');
-  assert.match(getProfessorAvailability(p,at('11:00')).detail,/presence not confirmed/);
+  assert.equal(getProfessorAvailability(p,at('11:00')).status,'unknown');
   assert.equal(getOpenSlots(p,at('08:00')).some(x=>x.date==='2026-10-26'&&x.time==='11:00'),true);
 });
 test('class, meeting and approved consultation take precedence over office hours', () => {
@@ -71,7 +70,7 @@ test('class, meeting and approved consultation take precedence over office hours
   assert.equal(getProfessorAvailability(p,at('15:00')).status,'meeting');
   assert.equal(getProfessorAvailability(p,at('13:00'),[appointment()]).status,'consultation');
 });
-test('pending and cancelled consultations never claim In Consultation', () => {
+test('pending and cancelled consultations never claim In a Consultation', () => {
   for (const status of ['Pending','Cancelled','Needs action']) assert.equal(getProfessorAvailability(professor(),at('13:00'),[appointment({status})]).status,'unknown');
 });
 test('until-changed override has no two-hour expiry; explicit unavailable wins', () => {
@@ -85,7 +84,8 @@ test('until-changed override has no two-hour expiry; explicit unavailable wins',
 test('manual Available does not suppress a scheduled class and survives beyond two hours', () => {
   const p = professor(); p.override={status:'available',setAt:at('08:00'),until:null};
   assert.equal(getProfessorAvailability(p,at('09:00')).status,'teaching');
-  assert.equal(getProfessorAvailability(p,at('18:00')).status,'available');
+  assert.equal(getProfessorAvailability(p,at('13:00')).status,'available');
+  assert.equal(getProfessorAvailability(p,at('14:00')).status,'unknown');
 });
 test('selected-time and rest-of-day overrides stop at their exclusive end', () => {
   const p = professor(); p.override={status:'unavailable',setAt:at('11:00'),until:at('11:30')};

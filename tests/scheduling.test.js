@@ -31,13 +31,13 @@ test('exception overrides teaching; timed exception ends precisely', () => {
 });
 test('approved ongoing consultations override available status', () => {
   const p = { ...professor(), status: 'available', updatedAt: at('12:00') };
-  assert.equal(getProfessorAvailability(p, at('13:00'), [booking({ status: 'Approved' })]).reason, 'In Consultation');
+  assert.equal(getProfessorAvailability(p, at('13:00'), [booking({ status: 'Approved' })]).reason, 'In a Consultation');
   assert.equal(getProfessorAvailability(p, at('13:30'), [booking({ status: 'Approved' })]).status, 'available');
 });
 test('legacy manual confirmation expires; expired timer does not imply presence', () => {
   const p = { ...professor(), status: 'available', updatedAt: at('11:00') };
-  assert.equal(getProfessorAvailability(p, at('12:59')).status, 'available');
-  assert.equal(getProfessorAvailability(p, at('13:00')).status, 'unknown');
+  assert.equal(getProfessorAvailability(p, at('16:59')).status, 'available');
+  assert.equal(getProfessorAvailability(p, at('17:00')).status, 'unknown');
   p.returnAt = at('11:30');
   assert.equal(getProfessorAvailability(p, at('11:30')).status, 'unknown');
 });

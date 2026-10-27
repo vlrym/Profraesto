@@ -36,14 +36,13 @@ Priority, highest first:
 1. Missing/inactive faculty, explicit Unavailable override, or active unavailable period/exception. Unexpired legacy Do Not Disturb is treated as explicit unavailability.
 2. Current class — **Teaching at SHL 401**, with its scheduled subject and end time.
 3. Current meeting — **In a Meeting**.
-4. Approved ongoing consultation — **In Consultation**.
-5. Explicit manual Available confirmation.
-6. Configured office hours — **Available**, accompanied by “Scheduled office hours · presence not confirmed.”
-7. **Status Unconfirmed**.
+4. Approved ongoing consultation — **In a Consultation**.
+5. Valid manual Available, Busy or In a Meeting confirmation.
+6. **Status Unconfirmed** (system-generated, never a manual selection).
 
-Ordinary consultation windows advertise bookable times; they do not assert Available. Pending, proposed and Needs action consultations do not assert In Consultation. A gap between classes never proves that the professor is available.
+Consultation windows and office hours advertise bookable times; they do not assert Available. Pending, proposed and Needs action consultations do not assert In a Consultation. A gap between classes never proves that the professor is available.
 
-Manual overrides are optional: until changed, through the end of today, or until a chosen time today. They have no mandatory two-hour expiry. Available never overrides a commitment; Unavailable can interrupt one. Manual confirmation dates are shown when relevant.
+Manual overrides are optional: until changed, through the end of today, or until a chosen time today. Available expires at the earliest of the selected end time, six hours after confirmation, or the next date’s 7:30 AM cutoff. Configure `AVAILABILITY_CONFIRMATION.inactivityMinutes` and `.dayStart` in `config/settings.js` (Asia/Manila). An early confirmation on the same date counts; yesterday’s confirmation cannot survive today’s cutoff. Inactivity alone means Status Unconfirmed, never Unavailable. Indefinite Unavailable, Busy and In a Meeting overrides keep their selected durations. Available never overrides a commitment; Unavailable can interrupt one. Manual confirmation dates are shown when relevant.
 
 **A calendar cannot track physical whereabouts.** If a professor leaves unexpectedly without updating it, the app cannot know. Planned office hours and faculty confirmations describe their source; no location sensing is implied.
 

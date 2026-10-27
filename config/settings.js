@@ -24,9 +24,9 @@ export const STATUS_INFO = {
   available: { label: "Available", color: "var(--ok)", icon: "●" },
   busy: { label: "Busy", color: "var(--warn)", icon: "●" },
   unavailable: { label: "Unavailable", color: "var(--gray)", icon: "●" },
-  unknown: { label: "Status Unconfirmed", color: "var(--unknown)", icon: "?" },
+  unknown: { label: "Status Unconfirmed", color: "var(--unknown)", icon: "" },
   teaching: { label: "Teaching", color: "var(--primary)", icon: "●" },
-  consultation: { label: "In Consultation", color: "var(--ok)", icon: "●" },
+  consultation: { label: "In a Consultation", color: "var(--ok)", icon: "●" },
   meeting: { label: "In a Meeting", color: "var(--warn)", icon: "●" },
   dnd: { label: "Do Not Disturb", color: "var(--dnd)", icon: "⛔" },
 };
@@ -59,6 +59,11 @@ export const TABS_BY_ROLE = {
 
 export const BUILDINGS = ["SHL", "JPL"];
 export const MANUAL_STATUS_MINUTES = 120; // Compatibility only: expiry of old saved confirmations.
+// Availability confirmations expire independently of intentional Unavailable overrides.
+export const AVAILABILITY_CONFIRMATION = {
+  inactivityMinutes: 6 * 60,
+  dayStart: '07:30', // Asia/Manila; an early confirmation on the same date also counts.
+};
 export const CONSULTATION_MINUTES = 30;
 export const BOOKING_HORIZON_DAYS = 14;
 export const CALENDAR_TYPES = {

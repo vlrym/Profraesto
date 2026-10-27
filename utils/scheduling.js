@@ -1,4 +1,4 @@
-import { BUILDINGS, MANUAL_STATUS_MINUTES, MINUTE, CONSULTATION_MINUTES, BOOKING_HORIZON_DAYS } from '../config/settings.js';
+import { BUILDINGS, MANUAL_STATUS_MINUTES, AVAILABILITY_CONFIRMATION, MINUTE, CONSULTATION_MINUTES, BOOKING_HORIZON_DAYS } from '../config/settings.js';
 import { getPhilippineNow, getDayOfWeek, addDays, timeToMinutes, minutesToTime } from './time.js';
 import { getCalendarEvents } from './calendar.js';
 
@@ -36,12 +36,24 @@ export function validateCalendarEvent(professor, event) {
     !(other.source === 'event' && other.id === event.id) && ['class', 'meeting'].includes(other.type) && overlaps(start, end, other.startAt, other.endAt));
   return conflict ? `This overlaps ${conflict.label}. Choose another time.` : '';
 }
-export function getManualOverride(professor, timestamp = Date.now()) {
+export function getAvailabilityConfirmationExpiry(setAt, policy = AVAILABILITY_CONFIRMATION) {
+  if (!Number.isFinite(setAt)) return NaN;
+  // A confirmation made before the cutoff counts for that date: no exact-time action required.
+  const nextDay = addDays(getPhilippineNow(setAt).date, 1);
+  return Math.min(setAt + policy.inactivityMinutes * MINUTE, toTimestamp(nextDay, policy.dayStart));
+}
+export function getManualOverride(professor, timestamp = Date.now(), policy = AVAILABILITY_CONFIRMATION) {
   const override = professor.override;
-  if (override && override.setAt <= timestamp && (override.until === null || timestamp < override.until)) return override;
-  // Preserve an existing legacy confirmation only until its original expiry.
+  if (override && ['available', 'unavailable', 'busy', 'meeting'].includes(override.status)) {
+    const until = override.status === 'available'
+      ? Math.min(override.until ?? Infinity, getAvailabilityConfirmationExpiry(override.setAt, policy)) : override.until;
+    if (override.setAt <= timestamp && (until === null || timestamp < until)) return { ...override, until };
+  }
+  // Legacy Available follows the same policy; other legacy statuses retain their expiry.
   if (!override && professor.updatedAt <= timestamp) {
-    const until = professor.returnAt || professor.updatedAt + MANUAL_STATUS_MINUTES * MINUTE;
+    const until = professor.status === 'available'
+      ? Math.min(professor.returnAt || Infinity, getAvailabilityConfirmationExpiry(professor.updatedAt, policy))
+      : professor.returnAt || professor.updatedAt + MANUAL_STATUS_MINUTES * MINUTE;
     if (timestamp < until && ['available', 'busy', 'unavailable'].includes(professor.status)) return { status: professor.status, setAt: professor.updatedAt, until };
   }
   return null;
@@ -109,10 +121,10 @@ export function validateConsultationRequest(professor, appointment, appointments
 }
 
 // Intervals include their start and exclude their end. Never infer Available from a free timetable.
-export function getProfessorAvailability(professor, timestamp = Date.now(), appointments = []) {
+export function getProfessorAvailability(professor, timestamp = Date.now(), appointments = [], policy = AVAILABILITY_CONFIRMATION) {
   if (!professor || professor.active === false) return { status: 'unavailable', reason: 'Faculty listing inactive or missing' };
   const now = getPhilippineNow(timestamp);
-  const manual = getManualOverride(professor, timestamp);
+  const manual = getManualOverride(professor, timestamp, policy);
   if (professor.dnd && (!professor.dnd.until || timestamp < professor.dnd.until)) return { status: 'dnd', reason: 'Do Not Disturb enabled' };
   const exception = (professor.exceptions || []).find(x => exceptionOverlaps(x, now.date, now.minutes, now.minutes + 1));
   if (exception) return { status: 'unavailable', reason: 'Unavailable', detail: exception.reason, until: exception.end ? toTimestamp(exception.endDate, exception.end) : toTimestamp(addDays(exception.endDate, 1), '00:00') };
@@ -128,10 +140,8 @@ export function getProfessorAvailability(professor, timestamp = Date.now(), appo
   const meeting = events.find(event => event.type === 'meeting');
   if (meeting) return { status:'meeting', reason:'In a Meeting', detail:meeting.label, until:meeting.endAt };
   const consultation = events.find(event => event.type === 'appointment' && event.status === 'Approved');
-  if (consultation) return { status:'consultation', reason:'In Consultation', detail:'Confirmed appointment', until:consultation.endAt };
-  if (manual && ['available', 'busy'].includes(manual.status)) return { status:manual.status, reason:manual.status === 'available' ? 'Available' : 'Busy', detail:'Confirmed by faculty', confirmedAt:manual.setAt, until:manual.until };
-  const office = events.find(event => event.type === 'office');
-  if (office) return { status:'available', reason:'Available', detail:'Scheduled office hours · presence not confirmed', until:office.endAt };
+  if (consultation) return { status:'consultation', reason:'In a Consultation', detail:'Confirmed appointment', until:consultation.endAt };
+  if (manual && ['available', 'busy', 'meeting'].includes(manual.status)) return { status:manual.status, reason:manual.status === 'available' ? 'Available' : manual.status === 'meeting' ? 'In a Meeting' : 'Busy', detail:'Confirmed by faculty', confirmedAt:manual.setAt, until:manual.until };
   return { status:'unknown', reason:'Status Unconfirmed', detail:'No current availability confirmation' };
 }
 export const availabilityFor = getProfessorAvailability;

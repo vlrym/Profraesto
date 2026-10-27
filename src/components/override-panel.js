@@ -1,10 +1,11 @@
 import { html, useState } from '../ui.js';
 import { getPhilippineNow, addDays, formatClock } from '../../utils/time.js';
 import { getManualOverride, toTimestamp, isValidTime } from '../../utils/scheduling.js';
+import { AVAILABILITY_CONFIRMATION, STATUS_INFO } from '../../config/settings.js';
 
 export function OverridePanel({ app, professor, onClose }) {
   const current = getManualOverride(professor, app.now);
-  const [status, setStatus] = useState(current?.status === 'available' ? 'available' : 'unavailable');
+  const [status, setStatus] = useState(current?.status || 'unavailable');
   const [duration, setDuration] = useState('today');
   const [time, setTime] = useState('17:00');
   const [error, setError] = useState('');
@@ -20,9 +21,10 @@ export function OverridePanel({ app, professor, onClose }) {
   }
   return html`<h3>Availability override</h3>
     <p class="small muted">Use for an unexpected change. Classes, meetings and confirmed consultations still take priority over Available.</p>
-    ${current && html`<p class="small">Current override: ${current.status === 'available' ? 'Available' : 'Unavailable'} · ${current.until ? 'until ' + formatClock(current.until) : 'until changed'}</p>`}
-    <label class="field-block"><span class="form-label">Status</span><select value=${status} onChange=${e => setStatus(e.target.value)}><option value="unavailable">Unavailable</option><option value="available">Available</option></select></label>
-    <label class="field-block"><span class="form-label">Keep this override</span><select value=${duration} onChange=${e => setDuration(e.target.value)}><option value="today">For the rest of today</option><option value="changed">Until I change it</option><option value="time">Until a time today</option></select></label>
+    ${current && html`<p class="small">Current override: ${STATUS_INFO[current.status].label} · ${current.until ? 'until ' + formatClock(current.until) : 'until changed'}</p>`}
+    <label class="field-block"><span class="form-label">Status</span><select value=${status} onChange=${e => setStatus(e.target.value)}>${['unavailable', 'available', 'meeting', 'busy'].map(key => html`<option key=${key} value=${key}>${STATUS_INFO[key].label}</option>`)}</select></label>
+    <label class="field-block"><span class="form-label">Keep this override</span><select value=${duration} onChange=${e => setDuration(e.target.value)}><option value="today">For the rest of today</option><option value="changed">${status === 'available' ? 'Until confirmation expires' : 'Until I change it'}</option><option value="time">Until a time today</option></select></label>
+    ${status === 'available' && html`<p class="small muted">Confirm Available again within ${AVAILABILITY_CONFIRMATION.inactivityMinutes / 60} hours and each working day by ${AVAILABILITY_CONFIRMATION.dayStart} (Asia/Manila). Earlier confirmations on the same date count. A shorter override duration still applies.</p>`}
     ${duration === 'time' && html`<label class="field-block"><span class="form-label">Until</span><input type="time" value=${time} onInput=${e => setTime(e.target.value)} /></label>`}
     ${status === 'unavailable' && html`<p class="small muted">Existing consultations within this override will need a new time.</p>`}
     ${error && html`<div class="error-text" role="alert">${error}</div>`}
